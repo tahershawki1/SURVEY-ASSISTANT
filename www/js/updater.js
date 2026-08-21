@@ -104,6 +104,12 @@ const Updater = (() => {
       }
     }
 
+    await Store.addNotification({
+      icon: "⚠️",
+      title: "تعذّر التنزيل التلقائي",
+      message: `الإصدار ${manifest.version} متاح لكن لم يتمكن التطبيق من تنزيله تلقائيًا (نظام التحديث غير متاح في هذه النسخة المثبتة). ثبّت أحدث نسخة APK يدويًا لتفعيل الإصدار الجديد.`,
+    });
+    refreshBadge();
     return { status: "available-no-native", version: manifest.version };
   }
 
