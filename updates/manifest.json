@@ -1,7 +1,7 @@
 {
-  "version": "1.0.2",
-  "url": "https://raw.githubusercontent.com/tahershawki1/SURVEY-ASSISTANT/main/updates/bundle-v1.0.2.zip",
-  "checksum": "c7ee593db35f1e061f9f4769b80e63cccdae6f2c5e2e5fcb7e84c43545f9027f",
-  "notes": "تحسينات على خط بناء التطبيق: إصلاح فشل بناء APK، وتقوية آلية نشر التحديثات \"OTA\" وضمان صحة ملف manifest.",
-  "publishedAt": "2026-08-21T07:54:47Z"
+  "version": "1.0.3",
+  "url": "https://raw.githubusercontent.com/tahershawki1/SURVEY-ASSISTANT/main/updates/bundle-v1.0.3.zip",
+  "checksum": "93fdfcabea1d38a08e1bbc7529b44f20c6f6bc5c4dce0f64e96a1ecad2ef8c03",
+  "notes": "تفعيل صلاحيات الموقع (Android/iOS) وإضافة أداة التحقق من المناسيب",
+  "publishedAt": "2026-08-21T09:19:59Z"
 }
