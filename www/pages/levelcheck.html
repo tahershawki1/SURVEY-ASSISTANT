@@ -151,14 +151,13 @@ function validateStage2() {
 }
 
 function resultLabel(res) {
-  const rlTxt = `RL = ${res.actualRL.toFixed(3)}`;
   if (res.status === "match") {
-    return { cls: "ok", text: `✅ مطابق (${rlTxt})` };
+    return { cls: "ok", text: `✅ مطابق` };
   }
   if (res.status === "high") {
-    return { cls: "warn", text: `🔺 أعلى بـ ${Math.abs(res.diffMM).toFixed(0)} مم (${rlTxt})` };
+    return { cls: "warn", text: `🔺 أعلى بـ ${Math.abs(res.diffMM).toFixed(0)} مم` };
   }
-  return { cls: "danger", text: `🔻 أقل بـ ${Math.abs(res.diffMM).toFixed(0)} مم (${rlTxt})` };
+  return { cls: "danger", text: `🔻 أقل بـ ${Math.abs(res.diffMM).toFixed(0)} مم` };
 }
 
 function renderReadings() {
@@ -203,7 +202,7 @@ function calcReading() {
     return;
   }
   const res = LevelCheck.checkReading(HI, targetRL, reading);
-  readings.unshift({ reading, res });
+  readings.push({ reading, res });
   renderReadings();
   input.value = "";
   input.focus();
