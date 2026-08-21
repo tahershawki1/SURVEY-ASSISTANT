@@ -1,5 +1,5 @@
 name: بناء تطبيق أندرويد (APK)
- 
+
 # يبني ملف APK قابل للتثبيت مباشرة (بدون الحاجة لتثبيت Android Studio على جهازك).
 # يعمل يدويًا (Run workflow) أو تلقائيًا عند تعديل الإعدادات الأصلية للتطبيق (وليس عند
 # كل تحديث في www — تلك التحديثات تصل عبر نظام OTA بدون الحاجة لإعادة بناء APK).
@@ -14,70 +14,99 @@ on:
       - "package-lock.json"
       - "src/**"
       - ".github/workflows/build-android.yml"
- 
+
 permissions:
   contents: write
- 
+
+concurrency:
+  group: build-android
+  cancel-in-progress: true
+
+env:
+  # Capacitor CLI 8 يتطلب Node 22 فأعلى — استخدام 20 كان يُفشل خطوة cap sync.
+  NODE_VERSION: "22"
+  JAVA_VERSION: "21"
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
- 
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
- 
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
       - name: Install dependencies
         run: npm ci
- 
-      - name: Build native plugin bundle + sync Capacitor
-        run: |
-          npm run build:native
-          npx cap sync android
- 
+
+      - name: Run tests
+        run: npm test
+
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
- 
+          java-version: ${{ env.JAVA_VERSION }}
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
- 
-      - name: Install required SDK platform & build-tools
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;36.0.0"
+
+      - name: Build native plugin bundle + sync Capacitor
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
- 
+          npm run build:native
+          npx cap sync android
+
+      - name: Setup Gradle (with cache)
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Build debug APK
+        working-directory: android
         run: |
-          cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
- 
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK exists
+        id: apk
+        run: |
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          if [ ! -f "$APK" ]; then
+            echo "::error::لم يتم إنتاج ملف APK في المسار المتوقع: $APK"
+            exit 1
+          fi
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+          echo "حجم الملف: $(du -h "$APK" | cut -f1)"
+
       - name: Upload APK as build artifact
         uses: actions/upload-artifact@v4
         with:
           name: masaha-assistant-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
           retention-days: 30
- 
+
       - name: Publish APK to a stable Release link
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APK: ${{ steps.apk.outputs.path }}
+          TAG: android-debug-latest
+          COMMIT_SHA: ${{ github.sha }}
         run: |
-          APK="android/app/build/outputs/apk/debug/app-debug.apk"
-          TAG="android-debug-latest"
- 
-          git config user.name "masaha-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git tag -f "$TAG"
-          git push origin "$TAG" --force
- 
-          gh release delete "$TAG" --yes || true
+          BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          # حذف الإصدار والوسم القديمين (إن وُجدا) ثم إنشاء إصدار جديد على نفس الرابط الثابت.
+          gh release delete "$TAG" --yes --cleanup-tag || true
+
           gh release create "$TAG" "$APK" \
+            --target "$COMMIT_SHA" \
             --title "أحدث نسخة أندرويد (تجريبية - Debug)" \
-            --notes "بُنيت تلقائيًا من commit ${{ github.sha }} بتاريخ $(date -u +%Y-%m-%dT%H:%M:%SZ). هذه نسخة Debug للتجربة والتثبيت اليدوي، وليست موقّعة لنشرها على المتجر."
+            --notes "بُنيت تلقائيًا من commit ${COMMIT_SHA} بتاريخ ${BUILT_AT}. هذه نسخة Debug للتجربة والتثبيت اليدوي، وليست موقّعة لنشرها على المتجر."
+
+          echo "رابط التنزيل الثابت: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/app-debug.apk"

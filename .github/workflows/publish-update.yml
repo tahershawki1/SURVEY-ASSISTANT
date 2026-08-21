@@ -26,6 +26,10 @@ concurrency:
   group: publish-update
   cancel-in-progress: false
 
+env:
+  # Capacitor CLI 8 يتطلب Node 22 فأعلى.
+  NODE_VERSION: "22"
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -40,27 +44,38 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run tests
+        run: npm test
 
       - name: Build native plugin bundle
         run: npm run build:native
 
       - name: Determine next version
         id: ver
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
           if [ -f updates/manifest.json ]; then
-            OLD=$(node -p "require('./updates/manifest.json').version")
+            OLD=$(node -p "require('./updates/manifest.json').version || '1.0.0'")
           else
             OLD="1.0.0"
           fi
 
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            NEW="${{ github.event.inputs.version }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            NEW="$INPUT_VERSION"
+            if ! printf '%s' "$NEW" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::رقم الإصدار غير صالح: '$NEW' (الصيغة المطلوبة: MAJOR.MINOR.PATCH)"
+              exit 1
+            fi
           else
             IFS='.' read -r MA MI PA <<< "$OLD"
+            MA=${MA:-1}; MI=${MI:-0}; PA=${PA:-0}
             PA=$((PA + 1))
             NEW="$MA.$MI.$PA"
           fi
@@ -71,46 +86,81 @@ jobs:
 
       - name: Package web bundle (zip)
         id: pkg
+        env:
+          NEW_VERSION: ${{ steps.ver.outputs.new }}
         run: |
           mkdir -p updates
-          BUNDLE_NAME="bundle-v${{ steps.ver.outputs.new }}.zip"
-          cd www
-          zip -r -q "../updates/$BUNDLE_NAME" .
-          cd ..
+          BUNDLE_NAME="bundle-v${NEW_VERSION}.zip"
+          rm -f "updates/$BUNDLE_NAME"
+          (cd www && zip -r -q "../updates/$BUNDLE_NAME" .)
           CHECKSUM=$(sha256sum "updates/$BUNDLE_NAME" | awk '{print $1}')
           echo "bundle_name=$BUNDLE_NAME" >> "$GITHUB_OUTPUT"
           echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
+          echo "تم إنشاء الحزمة: $BUNDLE_NAME ($(du -h "updates/$BUNDLE_NAME" | cut -f1))"
 
       - name: Write manifest.json
+        env:
+          NEW_VERSION: ${{ steps.ver.outputs.new }}
+          BUNDLE_NAME: ${{ steps.pkg.outputs.bundle_name }}
+          CHECKSUM: ${{ steps.pkg.outputs.checksum }}
+          INPUT_NOTES: ${{ github.event.inputs.notes }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
         run: |
-          REPO="${{ github.repository }}"
-          BRANCH="${{ github.ref_name }}"
-          URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}/updates/${{ steps.pkg.outputs.bundle_name }}"
-          NOTES="${{ github.event.inputs.notes }}"
+          NOTES="$INPUT_NOTES"
           if [ -z "$NOTES" ]; then
             NOTES=$(git log -1 --pretty=%s)
           fi
-          cat > updates/manifest.json <<EOF
-          {
-            "version": "${{ steps.ver.outputs.new }}",
-            "url": "$URL",
-            "checksum": "${{ steps.pkg.outputs.checksum }}",
-            "notes": "$NOTES",
-            "publishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          }
-          EOF
+          # نبني JSON عبر Node حتى تُهرَّب علامات التنصيص والأسطر الجديدة في النص بشكل صحيح.
+          NOTES="$NOTES" node -e '
+            const fs = require("fs");
+            const { NEW_VERSION, BUNDLE_NAME, CHECKSUM, REPO, BRANCH, NOTES } = process.env;
+            const manifest = {
+              version: NEW_VERSION,
+              url: `https://raw.githubusercontent.com/${REPO}/${BRANCH}/updates/${BUNDLE_NAME}`,
+              checksum: CHECKSUM,
+              notes: NOTES,
+              publishedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+            };
+            fs.writeFileSync("updates/manifest.json", JSON.stringify(manifest, null, 2) + "\n");
+          '
+          node -e "JSON.parse(require('fs').readFileSync('updates/manifest.json','utf8')); console.log('manifest.json صالح');"
           cat updates/manifest.json
 
       - name: Keep only latest 3 bundles
+        env:
+          BUNDLE_NAME: ${{ steps.pkg.outputs.bundle_name }}
         run: |
           cd updates
-          ls -1t bundle-v*.zip 2>/dev/null | tail -n +4 | xargs -r rm -f
-          cd ..
+          # نستبعد الحزمة الجديدة من الحذف ثم نحذف ما زاد عن أحدث حزمتين قديمتين.
+          ls -1t bundle-v*.zip 2>/dev/null | grep -vxF "$BUNDLE_NAME" | tail -n +3 | xargs -r rm -f
+          ls -1 bundle-v*.zip
 
       - name: Commit and push update
+        env:
+          NEW_VERSION: ${{ steps.ver.outputs.new }}
+          BRANCH: ${{ github.ref_name }}
         run: |
           git config user.name "masaha-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add updates/
-          git commit -m "chore: نشر تحديث v${{ steps.ver.outputs.new }} [skip ci]" || echo "لا تغييرات"
-          git push
+          git add -A updates/
+
+          if git diff --cached --quiet; then
+            echo "لا تغييرات لنشرها."
+            exit 0
+          fi
+
+          git commit -m "chore: نشر تحديث v${NEW_VERSION} [skip ci]"
+
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${BRANCH}"; then
+              echo "تم الرفع بنجاح."
+              exit 0
+            fi
+            echo "فشل الرفع (محاولة $attempt) — إعادة المزامنة مع origin/${BRANCH} ثم المحاولة مجددًا."
+            sleep $((2 ** attempt))
+            git pull --rebase origin "$BRANCH" || true
+          done
+
+          echo "::error::تعذّر رفع تحديث الإصدار v${NEW_VERSION} بعد 4 محاولات."
+          exit 1
