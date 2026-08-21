@@ -61,6 +61,22 @@ npx cap open ios       # يفتح المشروع في Xcode (يتطلب جهاز
 
 بعد أي تعديل على ملفات `www/`، نفّذ `npm run sync` قبل إعادة البناء من Android Studio/Xcode.
 
+### 5.1 بناء ملف APK عبر GitHub Actions (بدون Android Studio)
+
+لست مضطرًا لتثبيت Android Studio على جهازك: يوجد Workflow جاهز يبني ملف APK كاملًا على خوادم GitHub.
+
+**كيف تشغّله:** Actions → **بناء تطبيق أندرويد (APK)** → Run workflow.
+كما يعمل تلقائيًا عند أي تعديل على `android/` أو `src/` أو `capacitor.config.json` أو `package.json` في فرع `main`.
+
+**من أين تنزّل الملف:**
+- من صفحة الـ Run نفسها ضمن **Artifacts** باسم `masaha-assistant-debug-apk`.
+- أو من رابط ثابت لا يتغير بعد كل بناء على فرع `main`:
+  <https://github.com/tahershawki1/SURVEY-ASSISTANT/releases/download/android-debug-latest/app-debug.apk>
+
+> النسخة الناتجة هي **Debug** للتجربة والتثبيت اليدوي على الهاتف (فعّل "تثبيت من مصادر غير معروفة")، وليست موقّعة للنشر على Google Play.
+
+**متطلبات البيئة المستخدمة في البناء:** Node 22 (إجباري — Capacitor CLI 8 لا يعمل على Node 20)، JDK 21، و Android SDK 36 مع build-tools 36.0.0.
+
 ## 6. إضافة صفحات/أدوات جديدة لاحقًا
 
 كل أداة عبارة عن صفحة HTML مستقلة داخل `www/pages/` + ملف منطق داخل `www/js/tools/`. لإضافة أداة جديدة:
