@@ -1,0 +1,83 @@
+name: بناء تطبيق أندرويد (APK)
+ 
+# يبني ملف APK قابل للتثبيت مباشرة (بدون الحاجة لتثبيت Android Studio على جهازك).
+# يعمل يدويًا (Run workflow) أو تلقائيًا عند تعديل الإعدادات الأصلية للتطبيق (وليس عند
+# كل تحديث في www — تلك التحديثات تصل عبر نظام OTA بدون الحاجة لإعادة بناء APK).
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "capacitor.config.json"
+      - "package.json"
+      - "package-lock.json"
+      - "src/**"
+      - ".github/workflows/build-android.yml"
+ 
+permissions:
+  contents: write
+ 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+ 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+ 
+      - name: Install dependencies
+        run: npm ci
+ 
+      - name: Build native plugin bundle + sync Capacitor
+        run: |
+          npm run build:native
+          npx cap sync android
+ 
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+ 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+ 
+      - name: Install required SDK platform & build-tools
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+ 
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+ 
+      - name: Upload APK as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: masaha-assistant-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+ 
+      - name: Publish APK to a stable Release link
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          TAG="android-debug-latest"
+ 
+          git config user.name "masaha-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git tag -f "$TAG"
+          git push origin "$TAG" --force
+ 
+          gh release delete "$TAG" --yes || true
+          gh release create "$TAG" "$APK" \
+            --title "أحدث نسخة أندرويد (تجريبية - Debug)" \
+            --notes "بُنيت تلقائيًا من commit ${{ github.sha }} بتاريخ $(date -u +%Y-%m-%dT%H:%M:%SZ). هذه نسخة Debug للتجربة والتثبيت اليدوي، وليست موقّعة لنشرها على المتجر."
