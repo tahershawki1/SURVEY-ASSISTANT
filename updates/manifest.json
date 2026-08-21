@@ -1,7 +1,7 @@
 {
-  "version": "1.0.7",
-  "url": "https://raw.githubusercontent.com/tahershawki1/SURVEY-ASSISTANT/main/updates/bundle-v1.0.7.zip",
-  "checksum": "502da748adb92406b8f849a081bbd8e1e24599ddf41c6dea1dacc2df3a4a71dc",
-  "notes": "Merge: إضافة موديل لتنزيل وتثبيت التحديثات (واجهة OTA أو APK)",
-  "publishedAt": "2026-08-21T11:58:48Z"
+  "version": "1.0.8",
+  "url": "https://raw.githubusercontent.com/tahershawki1/SURVEY-ASSISTANT/main/updates/bundle-v1.0.8.zip",
+  "checksum": "be60806f067dca492aee5d79f358c49ab4c3d5652302e8d72317ca4a08457fb3",
+  "notes": "زر Go بالكيبورد ينقل للحقل التالي حتى عبر المراحل في أداة التحقق من المناسيب",
+  "publishedAt": "2026-08-21T14:12:43Z"
 }
