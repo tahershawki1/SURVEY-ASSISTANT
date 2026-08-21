@@ -235,6 +235,12 @@ document.getElementById("bmRL").addEventListener("input", validateStage1);
 document.getElementById("bmBS").addEventListener("input", validateStage1);
 document.getElementById("targetRL").addEventListener("input", validateStage2);
 document.getElementById("fieldReading").addEventListener("input", validateStage3);
+document.getElementById("fieldReading").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    if (!document.getElementById("calcBtn").disabled) calcReading();
+  }
+});
 
 renderReadings();
 </script>
