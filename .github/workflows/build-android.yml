@@ -218,7 +218,7 @@ jobs:
           BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           NOTES="$(git log -1 --pretty=%s "$COMMIT_SHA")"
 
-          NOTES="$NOTES" node -e '
+          NOTES="$NOTES" BUILT_AT="$BUILT_AT" node -e '
             const fs = require("fs");
             const { VERSION_CODE, VERSION_NAME, COMMIT_SHA, SIGNED, REPO, NOTES, BUILT_AT } = process.env;
             const signed = SIGNED === "true";
