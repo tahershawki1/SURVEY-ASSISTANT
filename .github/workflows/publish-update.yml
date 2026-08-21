@@ -10,8 +10,6 @@ on:
       - "src/**"
       - "package.json"
       - "package-lock.json"
-    paths-ignore:
-      - "updates/**"
   workflow_dispatch:
     inputs:
       version:
