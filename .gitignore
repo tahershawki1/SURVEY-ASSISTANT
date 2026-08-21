@@ -19,3 +19,9 @@ ios/App/Podfile.lock
 # misc
 .DS_Store
 *.log
+
+# Signing keys — يجب ألا تُرفع أبدًا إلى المستودع
+*.jks
+*.keystore
+android/keystore.properties
+android/key.properties
