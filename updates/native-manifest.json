@@ -1,0 +1,8 @@
+{
+  "versionCode": 2,
+  "versionName": "1.0.2",
+  "commit": "0cc76f7b20e76776e973b92c131511afa8089798",
+  "signed": false,
+  "apkUrl": "https://github.com/tahershawki1/SURVEY-ASSISTANT/releases/download/android-debug-latest/app-debug.apk",
+  "notes": "Merge: إضافة موديل لتنزيل وتثبيت التحديثات (واجهة OTA أو APK)"
+}
