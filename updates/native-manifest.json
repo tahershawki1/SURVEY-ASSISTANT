@@ -1,8 +1,9 @@
 {
-  "versionCode": 2,
-  "versionName": "1.0.2",
-  "commit": "0cc76f7b20e76776e973b92c131511afa8089798",
+  "versionCode": 3,
+  "versionName": "1.0.3",
+  "commit": "e259e87b8e2a056c8cab6e45050a41b6594860ce",
   "signed": false,
   "apkUrl": "https://github.com/tahershawki1/SURVEY-ASSISTANT/releases/download/android-debug-latest/app-debug.apk",
-  "notes": "Merge: إضافة موديل لتنزيل وتثبيت التحديثات (واجهة OTA أو APK)"
+  "notes": "إصلاح حقل publishedAt المفقود في native-manifest.json",
+  "publishedAt": "2026-08-21T12:04:28Z"
 }
