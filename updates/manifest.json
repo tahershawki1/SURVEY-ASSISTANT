@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
-  "url": "",
-  "checksum": "",
-  "notes": "الإصدار الأولي",
-  "publishedAt": ""
+  "version": "1.0.1",
+  "url": "https://raw.githubusercontent.com/tahershawki1/SURVEY-ASSISTANT/main/updates/bundle-v1.0.1.zip",
+  "checksum": "c9018646cd6658fbc88b3a57b15debcb1fdc93a81cd0db723d2a6cd71091ea5f",
+  "notes": "Remove paths-ignore for updates in publish workflow",
+  "publishedAt": "2026-08-21T06:57:51Z"
 }
