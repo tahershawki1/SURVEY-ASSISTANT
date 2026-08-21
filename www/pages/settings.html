@@ -68,6 +68,7 @@
 <script src="../js/native-bundle.js"></script>
 <script src="../js/storage.js"></script>
 <script src="../js/updater.js"></script>
+<script src="../js/native-updater.js"></script>
 <script>
 async function load() {
   const s = await Store.getSettings();
@@ -101,10 +102,13 @@ async function saveAuto() {
 
 async function checkNow() {
   showToast("جاري الفحص...");
-  const r = await Updater.checkForUpdate({ silent: false });
-  if (r.status === "up-to-date") showToast("أنت تستخدم أحدث إصدار: " + r.version);
-  else if (r.status === "downloaded") showToast("تم تنزيل الإصدار " + r.version);
-  else if (r.status === "error") showToast("تعذر الفحص: " + r.error);
+  const { otaResult, nativeResult } = await promptAvailableUpdates({ manual: true });
+
+  if (otaResult.status === "error") {
+    showToast("تعذر فحص تحديث الواجهة: " + otaResult.error);
+  } else if (otaResult.status === "up-to-date" && (nativeResult.status === "up-to-date" || nativeResult.status === "unavailable")) {
+    showToast("أنت تستخدم أحدث إصدار: " + otaResult.version);
+  }
   await load();
 }
 

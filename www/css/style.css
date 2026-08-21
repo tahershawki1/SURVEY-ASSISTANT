@@ -370,3 +370,31 @@ main {
 .readings-row .ok { color: var(--success); font-weight: 700; }
 .readings-row .warn { color: var(--accent); font-weight: 700; }
 .readings-row .danger { color: var(--danger); font-weight: 700; }
+
+/* ===== Update modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+.modal-box {
+  width: 100%;
+  max-width: 480px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  padding: 20px 18px calc(20px + var(--safe-bottom));
+  animation: slideUp 0.25s ease;
+}
+.modal-box .modal-icon { font-size: 32px; margin-bottom: 8px; }
+.modal-box h3 { margin: 0 0 8px; font-size: 16.5px; }
+.modal-box p { margin: 0 0 16px; font-size: 13.5px; color: var(--text-dim); line-height: 1.7; }
+.modal-actions { display: flex; gap: 10px; }
+.modal-actions .btn { flex: 1; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
