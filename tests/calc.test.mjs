@@ -13,6 +13,7 @@ const Geo = loadIIFE("www/js/tools/geo.js", "Geo");
 const AreaCalc = loadIIFE("www/js/tools/area.js", "AreaCalc");
 const Leveling = loadIIFE("www/js/tools/leveling.js", "Leveling");
 const Traverse = loadIIFE("www/js/tools/traverse.js", "Traverse");
+const LevelCheck = loadIIFE("www/js/tools/levelcheck.js", "LevelCheck");
 
 let failures = 0;
 function check(name, cond, detail) {
@@ -81,6 +82,27 @@ check(
   "Traverse closes back to start",
   Math.abs(trav.points[4].x) < 1e-9 && Math.abs(trav.points[4].y) < 1e-9,
   JSON.stringify(trav.points[4])
+);
+
+// ---- LevelCheck: BM=100, BS=1.500 -> HI=101.5, target=100.2 ----
+const HI = LevelCheck.computeHI(100, 1.5);
+check("LevelCheck HI = 101.5", Math.abs(HI - 101.5) < 1e-9, HI);
+
+const matchRes = LevelCheck.checkReading(HI, 100.2, 1.3); // actualRL = 100.2 -> مطابق
+check("LevelCheck match status", matchRes.status === "match", JSON.stringify(matchRes));
+
+const highRes = LevelCheck.checkReading(HI, 100.2, 1.1); // actualRL = 100.4 -> أعلى بـ 200مم
+check(
+  "LevelCheck high status + diffMM",
+  highRes.status === "high" && Math.abs(highRes.diffMM - 200) < 1e-6,
+  JSON.stringify(highRes)
+);
+
+const lowRes = LevelCheck.checkReading(HI, 100.2, 1.5); // actualRL = 100.0 -> أقل بـ 200مم
+check(
+  "LevelCheck low status + diffMM",
+  lowRes.status === "low" && Math.abs(lowRes.diffMM + 200) < 1e-6,
+  JSON.stringify(lowRes)
 );
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURES`);
