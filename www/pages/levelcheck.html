@@ -32,11 +32,11 @@
     <h2>المرحلة 1 من 3 — النقطة الثابتة (Benchmark)</h2>
     <div class="field">
       <label>منسوب النقطة الثابتة المعروف (متر)</label>
-      <input type="number" step="any" id="bmRL" placeholder="مثال: 100.000" />
+      <input type="number" step="any" id="bmRL" placeholder="مثال: 100.000" enterkeyhint="next" />
     </div>
     <div class="field">
       <label>قراءة الميزان على النقطة الثابتة (خلفية BS)</label>
-      <input type="number" step="any" id="bmBS" placeholder="مثال: 1.500" />
+      <input type="number" step="any" id="bmBS" placeholder="مثال: 1.500" enterkeyhint="next" />
     </div>
     <div class="result-box empty" id="hiPreview">أدخل القيمتين لحساب ارتفاع خط النظر (HI)</div>
     <button class="btn" id="next1" disabled onclick="goTo('stage2')" style="margin-top:12px">التالي ↓</button>
@@ -47,7 +47,7 @@
     <h2>المرحلة 2 من 3 — المنسوب المطلوب</h2>
     <div class="field">
       <label>المنسوب المراد التحقق منه (متر)</label>
-      <input type="number" step="any" id="targetRL" placeholder="مثال: 100.200" disabled />
+      <input type="number" step="any" id="targetRL" placeholder="مثال: 100.200" enterkeyhint="next" disabled />
     </div>
     <button class="btn" id="next2" disabled onclick="goTo('stage3')" style="margin-top:4px">التالي ↓</button>
   </section>
@@ -232,10 +232,39 @@ function resetAll() {
   goTo("stage1");
 }
 
+function focusField(id) {
+  document.getElementById(id).focus();
+}
+
 document.getElementById("bmRL").addEventListener("input", validateStage1);
 document.getElementById("bmBS").addEventListener("input", validateStage1);
 document.getElementById("targetRL").addEventListener("input", validateStage2);
 document.getElementById("fieldReading").addEventListener("input", validateStage3);
+
+document.getElementById("bmRL").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    focusField("bmBS");
+  }
+});
+document.getElementById("bmBS").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    if (!document.getElementById("next1").disabled) {
+      goTo("stage2");
+      focusField("targetRL");
+    }
+  }
+});
+document.getElementById("targetRL").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    if (!document.getElementById("next2").disabled) {
+      goTo("stage3");
+      focusField("fieldReading");
+    }
+  }
+});
 document.getElementById("fieldReading").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
