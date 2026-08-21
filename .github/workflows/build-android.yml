@@ -83,6 +83,60 @@ jobs:
           echo "path=$APK" >> "$GITHUB_OUTPUT"
           echo "حجم الملف: $(du -h "$APK" | cut -f1)"
 
+      - name: Check release signing secrets
+        id: signing
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "مفتاح التوقيع متوفر — سيتم بناء نسخة release موقّعة."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::لم تُضبط أسرار التوقيع (ANDROID_KEYSTORE_BASE64) — سيتم تخطي نسخة release الموقّعة."
+          fi
+
+      - name: Decode keystore
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/signing"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/signing/release.jks"
+          if [ ! -s "$RUNNER_TEMP/signing/release.jks" ]; then
+            echo "::error::تعذّر فك ترميز ANDROID_KEYSTORE_BASE64 — تأكد أنه ترميز base64 صالح للملف .jks"
+            exit 1
+          fi
+
+      - name: Build signed release APK
+        if: steps.signing.outputs.enabled == 'true'
+        working-directory: android
+        env:
+          MASAHA_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          MASAHA_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          MASAHA_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          export MASAHA_KEYSTORE_FILE="$RUNNER_TEMP/signing/release.jks"
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Verify release APK signature
+        id: release_apk
+        if: steps.signing.outputs.enabled == 'true'
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$APK" ]; then
+            echo "::error::لم يتم إنتاج نسخة release الموقّعة في: $APK"
+            exit 1
+          fi
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -r | head -n 1)
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+          echo "حجم الملف: $(du -h "$APK" | cut -f1)"
+
+      - name: Remove decoded keystore
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/signing"
+
       - name: Upload APK as build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -91,22 +145,47 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Upload signed release APK as build artifact
+        if: steps.signing.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: masaha-assistant-release-apk
+          path: ${{ steps.release_apk.outputs.path }}
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Publish APK to a stable Release link
         if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APK: ${{ steps.apk.outputs.path }}
+          RELEASE_APK: ${{ steps.release_apk.outputs.path }}
+          SIGNED: ${{ steps.signing.outputs.enabled }}
           TAG: android-debug-latest
           COMMIT_SHA: ${{ github.sha }}
         run: |
           BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
+          ASSETS=("$APK")
+          if [ "$SIGNED" = "true" ]; then
+            ASSETS+=("$RELEASE_APK")
+            NOTES=$(printf '%s\n\n%s\n%s' \
+              "بُنيت تلقائيًا من commit ${COMMIT_SHA} بتاريخ ${BUILT_AT}." \
+              "- \`app-release.apk\` — النسخة الموقّعة، وهي الموصى بها للتثبيت والتوزيع." \
+              "- \`app-debug.apk\` — نسخة تجريبية للتشخيص فقط.")
+          else
+            NOTES="بُنيت تلقائيًا من commit ${COMMIT_SHA} بتاريخ ${BUILT_AT}. هذه نسخة Debug للتجربة والتثبيت اليدوي، وليست موقّعة."
+          fi
+
           # حذف الإصدار والوسم القديمين (إن وُجدا) ثم إنشاء إصدار جديد على نفس الرابط الثابت.
           gh release delete "$TAG" --yes --cleanup-tag || true
 
-          gh release create "$TAG" "$APK" \
+          gh release create "$TAG" "${ASSETS[@]}" \
             --target "$COMMIT_SHA" \
-            --title "أحدث نسخة أندرويد (تجريبية - Debug)" \
-            --notes "بُنيت تلقائيًا من commit ${COMMIT_SHA} بتاريخ ${BUILT_AT}. هذه نسخة Debug للتجربة والتثبيت اليدوي، وليست موقّعة لنشرها على المتجر."
+            --title "أحدث نسخة أندرويد" \
+            --notes "$NOTES"
 
-          echo "رابط التنزيل الثابت: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/app-debug.apk"
+          if [ "$SIGNED" = "true" ]; then
+            echo "رابط النسخة الموقّعة: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/app-release.apk"
+          fi
+          echo "رابط نسخة Debug: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/app-debug.apk"

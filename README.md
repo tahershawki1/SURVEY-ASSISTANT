@@ -77,6 +77,51 @@ npx cap open ios       # يفتح المشروع في Xcode (يتطلب جهاز
 
 **متطلبات البيئة المستخدمة في البناء:** Node 22 (إجباري — Capacitor CLI 8 لا يعمل على Node 20)، JDK 21، و Android SDK 36 مع build-tools 36.0.0.
 
+### 5.2 توقيع نسخة الإصدار (Signed Release APK)
+
+نسخة **Debug** كافية للتجربة، لكن التوزيع الحقيقي (وأي نشر مستقبلي على Google Play) يحتاج نسخة **موقّعة**. خط البناء يدعم ذلك تلقائيًا بمجرد ضبط أربعة أسرار في المستودع.
+
+#### أولًا: إنشاء مفتاح التوقيع (مرة واحدة فقط)
+
+```bash
+keytool -genkeypair -v \
+  -keystore masaha-release.jks \
+  -alias masaha \
+  -keyalg RSA -keysize 4096 -validity 10000 \
+  -dname "CN=Masaha Assistant, OU=Surveying Tools, O=Masaha, L=Cairo, C=EG"
+```
+
+> ⚠️ **احتفظ بهذا الملف وكلمة مروره في مكان آمن ولا ترفعه إلى المستودع أبدًا** (‏`.gitignore` يمنع ذلك). فقدان المفتاح يعني أنك لن تستطيع إصدار تحديث للتطبيق بنفس الهوية على Google Play إطلاقًا.
+
+#### ثانيًا: إضافة الأسرار في GitHub
+
+من **Settings → Secrets and variables → Actions → New repository secret**، أضف:
+
+| اسم السرّ | القيمة |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | ناتج `base64 -w 0 masaha-release.jks` |
+| `ANDROID_KEYSTORE_PASSWORD` | كلمة مرور الـ keystore |
+| `ANDROID_KEY_ALIAS` | `masaha` |
+| `ANDROID_KEY_PASSWORD` | كلمة مرور المفتاح (نفس السابقة عادةً) |
+
+#### ثالثًا
+
+شغّل workflow **بناء تطبيق أندرويد (APK)** كالمعتاد. عند وجود الأسرار سيبني نسخة موقّعة إضافية، ويتحقق من توقيعها بـ `apksigner`، وينشرها في نفس الـ Release باسم `app-release.apk`:
+
+<https://github.com/tahershawki1/SURVEY-ASSISTANT/releases/download/android-debug-latest/app-release.apk>
+
+إن لم تُضبط الأسرار، يتخطى البناء نسخة الإصدار بهدوء ويكتفي بـ Debug — فلا يفشل خط البناء.
+
+**للبناء الموقّع محليًا:**
+
+```bash
+MASAHA_KEYSTORE_FILE=/path/to/masaha-release.jks \
+MASAHA_KEYSTORE_PASSWORD=... \
+MASAHA_KEY_ALIAS=masaha \
+MASAHA_KEY_PASSWORD=... \
+  ./android/gradlew -p android assembleRelease
+```
+
 ## 6. إضافة صفحات/أدوات جديدة لاحقًا
 
 كل أداة عبارة عن صفحة HTML مستقلة داخل `www/pages/` + ملف منطق داخل `www/js/tools/`. لإضافة أداة جديدة:

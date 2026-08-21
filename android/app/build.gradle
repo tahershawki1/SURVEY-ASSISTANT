@@ -1,5 +1,18 @@
 apply plugin: 'com.android.application'
 
+// إعدادات توقيع نسخة الإصدار (Release).
+// تُقرأ من متغيّرات البيئة (كما في GitHub Actions) أو من خصائص Gradle محليًا،
+// فلا يُخزَّن أي مفتاح أو كلمة مرور داخل المستودع.
+def signingProp = { String name ->
+    System.getenv(name) ?: project.findProperty(name)
+}
+def keystorePath = signingProp('MASAHA_KEYSTORE_FILE')
+def hasReleaseSigning = keystorePath != null && !keystorePath.toString().isEmpty() && file(keystorePath).exists()
+
+if (!hasReleaseSigning) {
+    logger.lifecycle("لم يتم ضبط مفتاح التوقيع (MASAHA_KEYSTORE_FILE) — ستُبنى نسخة release غير موقّعة.")
+}
+
 android {
     namespace = "com.masaha.assistant"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,10 +29,26 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(keystorePath)
+                storePassword signingProp('MASAHA_KEYSTORE_PASSWORD')
+                keyAlias signingProp('MASAHA_KEY_ALIAS')
+                keyPassword signingProp('MASAHA_KEY_PASSWORD')
+                // v2/v3 يغطيان أندرويد 7 فأعلى (minSdk هنا 24)، و v3 يسمح بتدوير المفتاح لاحقًا.
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
