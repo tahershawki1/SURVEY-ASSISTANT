@@ -1,7 +1,7 @@
 {
-  "version": "1.0.1",
-  "url": "https://raw.githubusercontent.com/tahershawki1/SURVEY-ASSISTANT/main/updates/bundle-v1.0.1.zip",
-  "checksum": "c9018646cd6658fbc88b3a57b15debcb1fdc93a81cd0db723d2a6cd71091ea5f",
-  "notes": "Remove paths-ignore for updates in publish workflow",
-  "publishedAt": "2026-08-21T06:57:51Z"
+  "version": "1.0.2",
+  "url": "https://raw.githubusercontent.com/tahershawki1/SURVEY-ASSISTANT/main/updates/bundle-v1.0.2.zip",
+  "checksum": "c7ee593db35f1e061f9f4769b80e63cccdae6f2c5e2e5fcb7e84c43545f9027f",
+  "notes": "تحسينات على خط بناء التطبيق: إصلاح فشل بناء APK، وتقوية آلية نشر التحديثات \"OTA\" وضمان صحة ملف manifest.",
+  "publishedAt": "2026-08-21T07:54:47Z"
 }
