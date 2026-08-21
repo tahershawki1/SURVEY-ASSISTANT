@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>مساعد المساحة</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="title-row">
+    <h1>مساعد المساحة</h1>
+  </div>
+  <a href="pages/notifications.html" class="icon-btn">
+    🔔
+    <span class="badge hidden" data-notif-badge>0</span>
+  </a>
+</header>
+
+<main>
+  <p class="subtitle">اختر أداة من أدوات هندسة المساحة</p>
+
+  <div class="tool-grid">
+    <a class="tool-card" href="pages/coords.html">
+      <div class="emoji">🧭</div>
+      <div class="name">تحويل الإحداثيات</div>
+      <div class="desc">UTM ⇄ خط الطول والعرض</div>
+    </a>
+
+    <a class="tool-card" href="pages/area.html">
+      <div class="emoji">📐</div>
+      <div class="name">المساحات والمسافات</div>
+      <div class="desc">مساحة، محيط، أزيموث بين نقاط</div>
+    </a>
+
+    <a class="tool-card" href="pages/leveling.html">
+      <div class="emoji">📏</div>
+      <div class="name">حسابات الميزانية</div>
+      <div class="desc">تفريغ مناسيب BS / IS / FS</div>
+    </a>
+
+    <a class="tool-card" href="pages/traverse.html">
+      <div class="emoji">🔺</div>
+      <div class="name">تسوية المضلعات</div>
+      <div class="desc">Bowditch — توزيع الخطأ</div>
+    </a>
+
+    <a class="tool-card" href="pages/fieldnotes.html">
+      <div class="emoji">📒</div>
+      <div class="name">الدفتر الميداني</div>
+      <div class="desc">ملاحظات مع موقع GPS</div>
+    </a>
+
+    <a class="tool-card" href="pages/settings.html">
+      <div class="emoji">⚙️</div>
+      <div class="name">الإعدادات</div>
+      <div class="desc">التحديثات والمستودع</div>
+    </a>
+  </div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"><span class="ic">🏠</span>الرئيسية</a>
+  <a href="pages/fieldnotes.html"><span class="ic">📒</span>الدفتر</a>
+  <a href="pages/notifications.html"><span class="ic">🔔</span>الإشعارات</a>
+  <a href="pages/settings.html"><span class="ic">⚙️</span>الإعدادات</a>
+</nav>
+
+<script src="js/native-bundle.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/updater.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

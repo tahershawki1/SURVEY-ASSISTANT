@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>حسابات الميزانية</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="title-row">
+    <a href="../index.html" class="back-btn">→</a>
+    <h1>حسابات الميزانية</h1>
+  </div>
+  <a href="notifications.html" class="icon-btn">
+    🔔
+    <span class="badge hidden" data-notif-badge>0</span>
+  </a>
+</header>
+
+<main>
+  <div class="card">
+    <h2>منسوب البداية (Benchmark)</h2>
+    <div class="field">
+      <label>الارتفاع المعروف (متر)</label>
+      <input type="number" step="any" id="firstRL" placeholder="مثال: 100.000" value="100.000" />
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>القراءات (BS / IS / FS)</h2>
+    <div id="rowsWrap"></div>
+    <button class="btn secondary sm" onclick="addRow()">+ إضافة قراءة</button>
+  </div>
+
+  <button class="btn" onclick="compute()" style="margin-bottom:14px">تفريغ المناسيب</button>
+
+  <div class="card">
+    <h2>النتيجة</h2>
+    <div class="result-box empty" id="result">أدخل القراءات ثم اضغط "تفريغ المناسيب"</div>
+  </div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="../index.html"><span class="ic">🏠</span>الرئيسية</a>
+  <a href="fieldnotes.html"><span class="ic">📒</span>الدفتر</a>
+  <a href="notifications.html"><span class="ic">🔔</span>الإشعارات</a>
+  <a href="settings.html"><span class="ic">⚙️</span>الإعدادات</a>
+</nav>
+
+<script src="../js/native-bundle.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/updater.js"></script>
+<script src="../js/tools/leveling.js"></script>
+<script>
+let rows = [
+  { station: "BM", bs: "", is: "", fs: "" },
+  { station: "P1", bs: "", is: "", fs: "" },
+];
+
+function renderRows() {
+  const wrap = document.getElementById("rowsWrap");
+  wrap.innerHTML = rows
+    .map(
+      (r, i) => `
+    <div class="card" style="padding:12px;margin-bottom:8px">
+      <div class="row-2" style="margin-bottom:8px">
+        <div class="field" style="margin-bottom:0">
+          <label>اسم المحطة</label>
+          <input value="${r.station}" oninput="rows[${i}].station=this.value" />
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn danger sm" style="width:100%" onclick="delRow(${i})">حذف</button>
+        </div>
+      </div>
+      <div class="row-3">
+        <div class="field" style="margin-bottom:0">
+          <label>BS خلفي</label>
+          <input type="number" step="any" value="${r.bs}" oninput="rows[${i}].bs=this.value" />
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>IS متوسط</label>
+          <input type="number" step="any" value="${r.is}" oninput="rows[${i}].is=this.value" />
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>FS أمامي</label>
+          <input type="number" step="any" value="${r.fs}" oninput="rows[${i}].fs=this.value" />
+        </div>
+      </div>
+    </div>`
+    )
+    .join("");
+}
+
+function addRow() {
+  rows.push({ station: `P${rows.length}`, bs: "", is: "", fs: "" });
+  renderRows();
+}
+
+function delRow(i) {
+  rows.splice(i, 1);
+  renderRows();
+}
+
+function compute() {
+  const firstRL = parseFloat(document.getElementById("firstRL").value);
+  const box = document.getElementById("result");
+  if (isNaN(firstRL)) {
+    box.className = "result-box empty";
+    box.textContent = "أدخل منسوب بداية صحيح";
+    return;
+  }
+  const res = Leveling.reduce(firstRL, rows);
+  const tableRows = res.rows
+    .map(
+      (r) => `
+      <div class="row">
+        <span>${r.station}</span>
+        <b>HI: ${r.HI !== null ? r.HI.toFixed(3) : "-"} | RL: ${r.RL !== null ? r.RL.toFixed(3) : "-"}</b>
+      </div>`
+    )
+    .join("");
+
+  const okClosure = Math.abs(res.misclosure) < 0.005;
+
+  box.className = "result-box";
+  box.innerHTML = `
+    ${tableRows}
+    <div class="row"><span>مجموع BS</span><b>${res.sumBS.toFixed(3)}</b></div>
+    <div class="row"><span>مجموع FS</span><b>${res.sumFS.toFixed(3)}</b></div>
+    <div class="row"><span>ΣBS − ΣFS</span><b>${res.arithmeticCheck.toFixed(3)}</b></div>
+    <div class="row"><span>آخر RL − أول RL</span><b>${res.expectedDiff.toFixed(3)}</b></div>
+    <div class="row"><span>خطأ الإغلاق الحسابي</span><b style="color:${okClosure ? "var(--success)" : "var(--danger)"}">${res.misclosure.toFixed(4)}</b></div>
+  `;
+}
+
+renderRows();
+</script>
+<script src="../js/app.js"></script>
+</body>
+</html>

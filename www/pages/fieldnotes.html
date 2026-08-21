@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>الدفتر الميداني</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="title-row">
+    <a href="../index.html" class="back-btn">→</a>
+    <h1>الدفتر الميداني</h1>
+  </div>
+  <a href="notifications.html" class="icon-btn">
+    🔔
+    <span class="badge hidden" data-notif-badge>0</span>
+  </a>
+</header>
+
+<main>
+  <div class="card">
+    <h2>ملاحظة جديدة</h2>
+    <div class="field">
+      <label>النص</label>
+      <textarea id="noteText" placeholder="اكتب ملاحظتك الميدانية هنا..."></textarea>
+    </div>
+    <div class="field" id="gpsPreview" style="display:none">
+      <label>الموقع الملتقط</label>
+      <div class="result-box" id="gpsBox" style="margin-top:0"></div>
+    </div>
+    <div class="row-2">
+      <button class="btn secondary" onclick="captureLocation()">📍 التقاط الموقع</button>
+      <button class="btn" onclick="saveNote()">حفظ الملاحظة</button>
+    </div>
+  </div>
+
+  <div class="section-title">الملاحظات المحفوظة</div>
+  <div id="notesList"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="../index.html"><span class="ic">🏠</span>الرئيسية</a>
+  <a href="fieldnotes.html"><span class="ic">📒</span>الدفتر</a>
+  <a href="notifications.html"><span class="ic">🔔</span>الإشعارات</a>
+  <a href="settings.html"><span class="ic">⚙️</span>الإعدادات</a>
+</nav>
+
+<script src="../js/native-bundle.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/updater.js"></script>
+<script>
+let currentGPS = null;
+
+async function captureLocation() {
+  try {
+    let pos;
+    if (window.Native && window.Native.Geolocation) {
+      const perm = await window.Native.Geolocation.checkPermissions();
+      if (perm.location !== "granted") await window.Native.Geolocation.requestPermissions();
+      pos = await window.Native.Geolocation.getCurrentPosition({ enableHighAccuracy: true });
+    } else if (navigator.geolocation) {
+      pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(
+        (p) => res({ coords: p.coords }), rej, { enableHighAccuracy: true }
+      ));
+    } else {
+      showToast("تحديد الموقع غير متاح");
+      return;
+    }
+    currentGPS = {
+      lat: pos.coords.latitude,
+      lon: pos.coords.longitude,
+      accuracy: pos.coords.accuracy,
+    };
+    document.getElementById("gpsPreview").style.display = "block";
+    document.getElementById("gpsBox").innerHTML = `
+      <div class="row"><span>Lat</span><b>${currentGPS.lat.toFixed(7)}</b></div>
+      <div class="row"><span>Lon</span><b>${currentGPS.lon.toFixed(7)}</b></div>
+      <div class="row"><span>الدقة</span><b>${currentGPS.accuracy?.toFixed(1) || "-"} m</b></div>
+    `;
+  } catch (e) {
+    showToast("تعذر الحصول على الموقع: " + (e.message || e));
+  }
+}
+
+async function saveNote() {
+  const text = document.getElementById("noteText").value.trim();
+  if (!text && !currentGPS) {
+    showToast("أدخل نصًا أو التقط موقعًا أولًا");
+    return;
+  }
+  await Store.addFieldNote({ text, gps: currentGPS });
+  document.getElementById("noteText").value = "";
+  currentGPS = null;
+  document.getElementById("gpsPreview").style.display = "none";
+  await renderNotes();
+  showToast("تم حفظ الملاحظة");
+}
+
+async function deleteNote(id) {
+  await Store.deleteFieldNote(id);
+  await renderNotes();
+}
+
+function fmtTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" });
+}
+
+async function renderNotes() {
+  const notes = await Store.getFieldNotes();
+  const wrap = document.getElementById("notesList");
+  if (notes.length === 0) {
+    wrap.innerHTML = '<div class="empty-state"><div class="big">📒</div>لا توجد ملاحظات محفوظة بعد</div>';
+    return;
+  }
+  wrap.innerHTML = notes
+    .map(
+      (n) => `
+    <div class="notif-item">
+      <div class="ic">📍</div>
+      <div class="body">
+        ${n.text ? `<div class="t" style="white-space:pre-wrap;font-weight:400">${escapeHtml(n.text)}</div>` : ""}
+        ${n.gps ? `<div class="m">Lat: ${n.gps.lat.toFixed(6)} — Lon: ${n.gps.lon.toFixed(6)} (±${n.gps.accuracy?.toFixed(0) || "?"}m)</div>` : ""}
+        <div class="time">${fmtTime(n.time)} · <a href="#" onclick="deleteNote('${n.id}');return false;" style="color:var(--danger)">حذف</a></div>
+      </div>
+    </div>`
+    )
+    .join("");
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+renderNotes();
+</script>
+<script src="../js/app.js"></script>
+</body>
+</html>

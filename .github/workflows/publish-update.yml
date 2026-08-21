@@ -1,0 +1,118 @@
+name: نشر تحديث OTA للتطبيق
+
+# ينشر تحديثًا تلقائيًا كلما تم رفع تعديل على واجهة التطبيق (www) أو ملفات src.
+# يبني حزمة zip جديدة ويحدّث updates/manifest.json الذي يفحصه التطبيق دوريًا.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "www/**"
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
+    paths-ignore:
+      - "updates/**"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "رقم إصدار محدد (اختياري، وإلا تتم زيادة رقم Patch تلقائيًا)"
+        required: false
+      notes:
+        description: "ملاحظات التحديث التي تظهر للمستخدم في مركز الإشعارات"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-update
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build native plugin bundle
+        run: npm run build:native
+
+      - name: Determine next version
+        id: ver
+        run: |
+          if [ -f updates/manifest.json ]; then
+            OLD=$(node -p "require('./updates/manifest.json').version")
+          else
+            OLD="1.0.0"
+          fi
+
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            NEW="${{ github.event.inputs.version }}"
+          else
+            IFS='.' read -r MA MI PA <<< "$OLD"
+            PA=$((PA + 1))
+            NEW="$MA.$MI.$PA"
+          fi
+
+          echo "old=$OLD" >> "$GITHUB_OUTPUT"
+          echo "new=$NEW" >> "$GITHUB_OUTPUT"
+          echo "سيتم النشر بالإصدار: $NEW (السابق: $OLD)"
+
+      - name: Package web bundle (zip)
+        id: pkg
+        run: |
+          mkdir -p updates
+          BUNDLE_NAME="bundle-v${{ steps.ver.outputs.new }}.zip"
+          cd www
+          zip -r -q "../updates/$BUNDLE_NAME" .
+          cd ..
+          CHECKSUM=$(sha256sum "updates/$BUNDLE_NAME" | awk '{print $1}')
+          echo "bundle_name=$BUNDLE_NAME" >> "$GITHUB_OUTPUT"
+          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
+
+      - name: Write manifest.json
+        run: |
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}/updates/${{ steps.pkg.outputs.bundle_name }}"
+          NOTES="${{ github.event.inputs.notes }}"
+          if [ -z "$NOTES" ]; then
+            NOTES=$(git log -1 --pretty=%s)
+          fi
+          cat > updates/manifest.json <<EOF
+          {
+            "version": "${{ steps.ver.outputs.new }}",
+            "url": "$URL",
+            "checksum": "${{ steps.pkg.outputs.checksum }}",
+            "notes": "$NOTES",
+            "publishedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+          cat updates/manifest.json
+
+      - name: Keep only latest 3 bundles
+        run: |
+          cd updates
+          ls -1t bundle-v*.zip 2>/dev/null | tail -n +4 | xargs -r rm -f
+          cd ..
+
+      - name: Commit and push update
+        run: |
+          git config user.name "masaha-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add updates/
+          git commit -m "chore: نشر تحديث v${{ steps.ver.outputs.new }} [skip ci]" || echo "لا تغييرات"
+          git push

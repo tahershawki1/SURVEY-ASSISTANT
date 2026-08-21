@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>تحويل الإحداثيات</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="title-row">
+    <a href="../index.html" class="back-btn">→</a>
+    <h1>تحويل الإحداثيات</h1>
+  </div>
+  <a href="notifications.html" class="icon-btn">
+    🔔
+    <span class="badge hidden" data-notif-badge>0</span>
+  </a>
+</header>
+
+<main>
+  <div class="card">
+    <div class="row-2" style="margin-bottom:14px">
+      <button class="btn" id="tabLL" onclick="setMode('ll')">إحداثيات جغرافية ← UTM</button>
+      <button class="btn secondary" id="tabUTM" onclick="setMode('utm')">UTM ← إحداثيات جغرافية</button>
+    </div>
+
+    <div id="formLL">
+      <h2>خط العرض والطول (WGS84)</h2>
+      <div class="row-2">
+        <div class="field">
+          <label>خط العرض Latitude (درجات عشرية)</label>
+          <input type="number" step="any" id="latIn" placeholder="مثال: 24.774265" />
+        </div>
+        <div class="field">
+          <label>خط الطول Longitude (درجات عشرية)</label>
+          <input type="number" step="any" id="lonIn" placeholder="مثال: 46.738586" />
+        </div>
+      </div>
+      <button class="btn" onclick="convertLLtoUTM()">تحويل إلى UTM</button>
+    </div>
+
+    <div id="formUTM" style="display:none">
+      <h2>إحداثيات UTM</h2>
+      <div class="row-2">
+        <div class="field">
+          <label>Easting (متر)</label>
+          <input type="number" step="any" id="eastIn" placeholder="مثال: 655000" />
+        </div>
+        <div class="field">
+          <label>Northing (متر)</label>
+          <input type="number" step="any" id="northIn" placeholder="مثال: 2741000" />
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label>المنطقة Zone</label>
+          <input type="number" id="zoneIn" placeholder="مثال: 38" />
+        </div>
+        <div class="field">
+          <label>نصف الكرة</label>
+          <select id="hemiIn">
+            <option value="N">شمالي N</option>
+            <option value="S">جنوبي S</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" onclick="convertUTMtoLL()">تحويل إلى خط الطول والعرض</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>النتيجة</h2>
+    <div class="result-box empty" id="result">أدخل القيم واضغط تحويل</div>
+  </div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="../index.html"><span class="ic">🏠</span>الرئيسية</a>
+  <a href="fieldnotes.html"><span class="ic">📒</span>الدفتر</a>
+  <a href="notifications.html"><span class="ic">🔔</span>الإشعارات</a>
+  <a href="settings.html"><span class="ic">⚙️</span>الإعدادات</a>
+</nav>
+
+<script src="../js/native-bundle.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/updater.js"></script>
+<script src="../js/tools/geo.js"></script>
+<script>
+function setMode(m) {
+  document.getElementById("formLL").style.display = m === "ll" ? "block" : "none";
+  document.getElementById("formUTM").style.display = m === "utm" ? "block" : "none";
+  document.getElementById("tabLL").className = m === "ll" ? "btn" : "btn secondary";
+  document.getElementById("tabUTM").className = m === "utm" ? "btn" : "btn secondary";
+}
+
+function convertLLtoUTM() {
+  const lat = parseFloat(document.getElementById("latIn").value);
+  const lon = parseFloat(document.getElementById("lonIn").value);
+  const box = document.getElementById("result");
+  if (isNaN(lat) || isNaN(lon) || lat < -80 || lat > 84) {
+    box.className = "result-box empty";
+    box.textContent = "الرجاء إدخال قيم صحيحة (خط العرض بين 80- و84)";
+    return;
+  }
+  const r = Geo.latLonToUTM(lat, lon);
+  box.className = "result-box";
+  box.innerHTML = `
+    <div class="row"><span>المنطقة (Zone)</span><b>${r.zone}${r.hemisphere}</b></div>
+    <div class="row"><span>Easting</span><b>${r.easting.toFixed(3)} m</b></div>
+    <div class="row"><span>Northing</span><b>${r.northing.toFixed(3)} m</b></div>
+    <div class="row"><span>DMS</span><b>${Geo.ddToDMS(lat, true)} , ${Geo.ddToDMS(lon, false)}</b></div>
+  `;
+}
+
+function convertUTMtoLL() {
+  const e = parseFloat(document.getElementById("eastIn").value);
+  const n = parseFloat(document.getElementById("northIn").value);
+  const zone = parseInt(document.getElementById("zoneIn").value, 10);
+  const hemi = document.getElementById("hemiIn").value;
+  const box = document.getElementById("result");
+  if (isNaN(e) || isNaN(n) || !zone || zone < 1 || zone > 60) {
+    box.className = "result-box empty";
+    box.textContent = "الرجاء إدخال قيم صحيحة";
+    return;
+  }
+  const r = Geo.utmToLatLon(e, n, zone, hemi);
+  box.className = "result-box";
+  box.innerHTML = `
+    <div class="row"><span>Latitude</span><b>${r.lat.toFixed(8)}</b></div>
+    <div class="row"><span>Longitude</span><b>${r.lon.toFixed(8)}</b></div>
+    <div class="row"><span>DMS</span><b>${Geo.ddToDMS(r.lat, true)} , ${Geo.ddToDMS(r.lon, false)}</b></div>
+  `;
+}
+</script>
+<script src="../js/app.js"></script>
+</body>
+</html>

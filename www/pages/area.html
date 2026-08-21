@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>المساحات والمسافات</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="title-row">
+    <a href="../index.html" class="back-btn">→</a>
+    <h1>المساحات والمسافات</h1>
+  </div>
+  <a href="notifications.html" class="icon-btn">
+    🔔
+    <span class="badge hidden" data-notif-badge>0</span>
+  </a>
+</header>
+
+<main>
+  <div class="card">
+    <h2>إضافة نقطة (Easting / Northing بالمتر)</h2>
+    <div class="row-2">
+      <div class="field">
+        <label>X (Easting)</label>
+        <input type="number" step="any" id="ptX" placeholder="0.00" />
+      </div>
+      <div class="field">
+        <label>Y (Northing)</label>
+        <input type="number" step="any" id="ptY" placeholder="0.00" />
+      </div>
+    </div>
+    <button class="btn" onclick="addPoint()">+ إضافة نقطة</button>
+  </div>
+
+  <div class="card">
+    <h2>النقاط (<span id="ptCount">0</span>)</h2>
+    <div class="points-list" id="ptList"></div>
+    <button class="btn ghost" onclick="clearPoints()">حذف كل النقاط</button>
+  </div>
+
+  <div class="card">
+    <h2>النتائج</h2>
+    <div class="result-box empty" id="result">أضف 3 نقاط على الأقل لحساب المساحة</div>
+  </div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="../index.html"><span class="ic">🏠</span>الرئيسية</a>
+  <a href="fieldnotes.html"><span class="ic">📒</span>الدفتر</a>
+  <a href="notifications.html"><span class="ic">🔔</span>الإشعارات</a>
+  <a href="settings.html"><span class="ic">⚙️</span>الإعدادات</a>
+</nav>
+
+<script src="../js/native-bundle.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/updater.js"></script>
+<script src="../js/tools/area.js"></script>
+<script>
+let points = [];
+
+function renderPoints() {
+  const list = document.getElementById("ptList");
+  document.getElementById("ptCount").textContent = points.length;
+  if (points.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="padding:24px"><div class="big">📍</div>لا توجد نقاط بعد</div>';
+    return;
+  }
+  list.innerHTML = points
+    .map(
+      (p, i) => `
+      <div class="point-item">
+        <div class="idx">${i + 1}</div>
+        <div class="coords">X: <b>${p.x.toFixed(3)}</b> &nbsp; Y: <b>${p.y.toFixed(3)}</b></div>
+        <div class="del" onclick="removePoint(${i})">✕</div>
+      </div>`
+    )
+    .join("");
+}
+
+function addPoint() {
+  const x = parseFloat(document.getElementById("ptX").value);
+  const y = parseFloat(document.getElementById("ptY").value);
+  if (isNaN(x) || isNaN(y)) {
+    showToast("الرجاء إدخال إحداثيات صحيحة");
+    return;
+  }
+  points.push({ x, y });
+  document.getElementById("ptX").value = "";
+  document.getElementById("ptY").value = "";
+  renderPoints();
+  compute();
+}
+
+function removePoint(i) {
+  points.splice(i, 1);
+  renderPoints();
+  compute();
+}
+
+function clearPoints() {
+  points = [];
+  renderPoints();
+  compute();
+}
+
+function compute() {
+  const box = document.getElementById("result");
+  if (points.length < 2) {
+    box.className = "result-box empty";
+    box.textContent = "أضف 3 نقاط على الأقل لحساب المساحة";
+    return;
+  }
+
+  const openPer = AreaCalc.perimeterOpen(points);
+  let html = `<div class="row"><span>طول المسار (مفتوح)</span><b>${openPer.toFixed(3)} m</b></div>`;
+
+  if (points.length >= 3) {
+    const area = AreaCalc.polygonArea(points);
+    const closedPer = AreaCalc.perimeterClosed(points);
+    html += `
+      <div class="row"><span>المساحة</span><b>${area.toFixed(3)} m²</b></div>
+      <div class="row"><span>المساحة (فدان)</span><b>${(area / 4200.83).toFixed(4)}</b></div>
+      <div class="row"><span>المساحة (هكتار)</span><b>${(area / 10000).toFixed(4)}</b></div>
+      <div class="row"><span>المحيط (مغلق)</span><b>${closedPer.toFixed(3)} m</b></div>
+    `;
+  }
+
+  const last = points[points.length - 1];
+  const prev = points[points.length - 2];
+  if (last && prev) {
+    const d = AreaCalc.distance(prev, last);
+    const az = AreaCalc.azimuth(prev, last);
+    html += `
+      <div class="row"><span>المسافة بين آخر نقطتين</span><b>${d.toFixed(3)} m</b></div>
+      <div class="row"><span>الأزيموث بين آخر نقطتين</span><b>${az.toFixed(4)}°</b></div>
+    `;
+  }
+
+  box.className = "result-box";
+  box.innerHTML = html;
+}
+
+renderPoints();
+</script>
+<script src="../js/app.js"></script>
+</body>
+</html>

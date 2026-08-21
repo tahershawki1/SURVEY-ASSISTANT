@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>مركز الإشعارات</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="title-row">
+    <a href="../index.html" class="back-btn">→</a>
+    <h1>مركز الإشعارات</h1>
+  </div>
+  <a href="#" class="icon-btn" onclick="checkNow();return false;" title="فحص التحديثات الآن">🔄</a>
+</header>
+
+<main>
+  <button class="btn secondary" onclick="clearAll()" style="margin-bottom:14px">مسح كل الإشعارات</button>
+  <div id="list"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="../index.html"><span class="ic">🏠</span>الرئيسية</a>
+  <a href="fieldnotes.html"><span class="ic">📒</span>الدفتر</a>
+  <a href="notifications.html"><span class="ic">🔔</span>الإشعارات</a>
+  <a href="settings.html"><span class="ic">⚙️</span>الإعدادات</a>
+</nav>
+
+<script src="../js/native-bundle.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/updater.js"></script>
+<script>
+function fmtTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" });
+}
+
+async function renderList() {
+  const notifs = await Store.getNotifications();
+  const wrap = document.getElementById("list");
+  if (notifs.length === 0) {
+    wrap.innerHTML = '<div class="empty-state"><div class="big">🔔</div>لا توجد إشعارات حتى الآن<br/>ستظهر هنا تنبيهات التحديثات الجديدة</div>';
+    return;
+  }
+  wrap.innerHTML = notifs
+    .map(
+      (n) => `
+    <div class="notif-item ${n.read ? "" : "unread"}">
+      <div class="ic">${n.icon}</div>
+      <div class="body">
+        <div class="t">${n.title}</div>
+        <div class="m">${n.message}</div>
+        <div class="time">${fmtTime(n.time)}</div>
+      </div>
+    </div>`
+    )
+    .join("");
+  await Store.markAllRead();
+  await Updater.refreshBadge();
+}
+
+async function clearAll() {
+  await Store.clearNotifications();
+  await renderList();
+  await Updater.refreshBadge();
+}
+
+async function checkNow() {
+  showToast("جاري فحص التحديثات...");
+  const r = await Updater.checkForUpdate({ silent: false });
+  if (r.status === "up-to-date") showToast("أنت تستخدم أحدث إصدار");
+  if (r.status === "error") showToast("تعذر الفحص: تحقق من الاتصال");
+  await renderList();
+}
+
+renderList();
+</script>
+<script src="../js/app.js"></script>
+</body>
+</html>

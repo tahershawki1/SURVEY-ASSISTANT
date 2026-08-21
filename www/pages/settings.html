@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>الإعدادات</title>
+<link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="title-row">
+    <a href="../index.html" class="back-btn">→</a>
+    <h1>الإعدادات</h1>
+  </div>
+  <a href="notifications.html" class="icon-btn">
+    🔔
+    <span class="badge hidden" data-notif-badge>0</span>
+  </a>
+</header>
+
+<main>
+  <div class="card">
+    <h2>معلومات الإصدار</h2>
+    <div class="result-box" style="margin-top:0" id="versionBox"></div>
+  </div>
+
+  <div class="card">
+    <h2>مستودع التحديثات على GitHub</h2>
+    <div class="field">
+      <label>اسم المستخدم / المنظمة</label>
+      <input id="ghOwner" placeholder="مثال: tahershawki1" />
+    </div>
+    <div class="field">
+      <label>اسم المستودع</label>
+      <input id="ghRepo" placeholder="مثال: SURVEY-ASSISTANT" />
+    </div>
+    <div class="field">
+      <label>الفرع (Branch)</label>
+      <input id="ghBranch" placeholder="main" />
+    </div>
+    <button class="btn secondary" onclick="saveRepo()">حفظ إعدادات المستودع</button>
+  </div>
+
+  <div class="card">
+    <h2>التحديث التلقائي</h2>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;margin-bottom:14px">
+      <input type="checkbox" id="autoCheck" />
+      تفعيل الفحص التلقائي للتحديثات
+    </label>
+    <div class="field">
+      <label>الفحص كل (ساعة)</label>
+      <input type="number" id="interval" min="1" />
+    </div>
+    <button class="btn secondary" onclick="saveAuto()">حفظ</button>
+  </div>
+
+  <button class="btn" onclick="checkNow()">🔄 فحص التحديثات الآن</button>
+</main>
+
+<nav class="bottom-nav">
+  <a href="../index.html"><span class="ic">🏠</span>الرئيسية</a>
+  <a href="fieldnotes.html"><span class="ic">📒</span>الدفتر</a>
+  <a href="notifications.html"><span class="ic">🔔</span>الإشعارات</a>
+  <a href="settings.html"><span class="ic">⚙️</span>الإعدادات</a>
+</nav>
+
+<script src="../js/native-bundle.js"></script>
+<script src="../js/storage.js"></script>
+<script src="../js/updater.js"></script>
+<script>
+async function load() {
+  const s = await Store.getSettings();
+  document.getElementById("ghOwner").value = s.githubOwner;
+  document.getElementById("ghRepo").value = s.githubRepo;
+  document.getElementById("ghBranch").value = s.branch;
+  document.getElementById("autoCheck").checked = s.autoCheck;
+  document.getElementById("interval").value = s.checkIntervalHours;
+  document.getElementById("versionBox").innerHTML = `
+    <div class="row"><span>الإصدار الحالي</span><b>${s.currentVersion}</b></div>
+    <div class="row"><span>آخر فحص</span><b>${s.lastCheck ? new Date(s.lastCheck).toLocaleString("ar-EG") : "لم يتم بعد"}</b></div>
+  `;
+}
+
+async function saveRepo() {
+  await Store.saveSettings({
+    githubOwner: document.getElementById("ghOwner").value.trim(),
+    githubRepo: document.getElementById("ghRepo").value.trim(),
+    branch: document.getElementById("ghBranch").value.trim() || "main",
+  });
+  showToast("تم الحفظ");
+}
+
+async function saveAuto() {
+  await Store.saveSettings({
+    autoCheck: document.getElementById("autoCheck").checked,
+    checkIntervalHours: parseInt(document.getElementById("interval").value, 10) || 6,
+  });
+  showToast("تم الحفظ");
+}
+
+async function checkNow() {
+  showToast("جاري الفحص...");
+  const r = await Updater.checkForUpdate({ silent: false });
+  if (r.status === "up-to-date") showToast("أنت تستخدم أحدث إصدار: " + r.version);
+  else if (r.status === "downloaded") showToast("تم تنزيل الإصدار " + r.version);
+  else if (r.status === "error") showToast("تعذر الفحص: " + r.error);
+  await load();
+}
+
+load();
+</script>
+<script src="../js/app.js"></script>
+</body>
+</html>

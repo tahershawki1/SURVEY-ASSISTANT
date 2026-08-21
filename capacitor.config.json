@@ -1,0 +1,22 @@
+{
+  "appId": "com.masaha.assistant",
+  "appName": "مساعد المساحة",
+  "webDir": "www",
+  "backgroundColor": "#0f172a",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#0f172a",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "resetWhenUpdate": true
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_update",
+      "iconColor": "#2563eb"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+node_modules/
+www/js/native-bundle.js.map
+
+# Android
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/captures/
+android/app/release/
+
+# iOS
+ios/App/Pods/
+ios/App/build/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/Podfile.lock
+
+# misc
+.DS_Store
+*.log
