@@ -34,6 +34,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -65,6 +67,19 @@ jobs:
 
       - name: Setup Gradle (with cache)
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Bump native version code
+        id: nativever
+        run: |
+          GRADLE="android/app/build.gradle"
+          OLD_CODE=$(grep -oP 'versionCode \K[0-9]+' "$GRADLE")
+          NEW_CODE=$((OLD_CODE + 1))
+          NEW_NAME="1.0.$NEW_CODE"
+          sed -i "s/versionCode $OLD_CODE/versionCode $NEW_CODE/" "$GRADLE"
+          sed -i "s/versionName \"[^\"]*\"/versionName \"$NEW_NAME\"/" "$GRADLE"
+          echo "code=$NEW_CODE" >> "$GITHUB_OUTPUT"
+          echo "name=$NEW_NAME" >> "$GITHUB_OUTPUT"
+          echo "رقم النسخة الأصلية الجديد: $NEW_CODE ($NEW_NAME)"
 
       - name: Build debug APK
         working-directory: android
@@ -189,3 +204,58 @@ jobs:
             echo "رابط النسخة الموقّعة: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/app-release.apk"
           fi
           echo "رابط نسخة Debug: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/app-debug.apk"
+
+      - name: Publish native update manifest
+        if: github.ref == 'refs/heads/main'
+        env:
+          VERSION_CODE: ${{ steps.nativever.outputs.code }}
+          VERSION_NAME: ${{ steps.nativever.outputs.name }}
+          COMMIT_SHA: ${{ github.sha }}
+          SIGNED: ${{ steps.signing.outputs.enabled }}
+          REPO: ${{ github.repository }}
+        run: |
+          mkdir -p updates
+          BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          NOTES="$(git log -1 --pretty=%s "$COMMIT_SHA")"
+
+          NOTES="$NOTES" node -e '
+            const fs = require("fs");
+            const { VERSION_CODE, VERSION_NAME, COMMIT_SHA, SIGNED, REPO, NOTES, BUILT_AT } = process.env;
+            const signed = SIGNED === "true";
+            const manifest = {
+              versionCode: parseInt(VERSION_CODE, 10),
+              versionName: VERSION_NAME,
+              commit: COMMIT_SHA,
+              signed,
+              apkUrl: `https://github.com/${REPO}/releases/download/android-debug-latest/${signed ? "app-release.apk" : "app-debug.apk"}`,
+              notes: NOTES,
+              publishedAt: BUILT_AT,
+            };
+            fs.writeFileSync("updates/native-manifest.json", JSON.stringify(manifest, null, 2) + "\n");
+          '
+          node -e "JSON.parse(require('fs').readFileSync('updates/native-manifest.json','utf8')); console.log('native-manifest.json صالح');"
+          cat updates/native-manifest.json
+
+          git config user.name "masaha-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add android/app/build.gradle updates/native-manifest.json
+
+          if git diff --cached --quiet; then
+            echo "لا تغييرات لنشرها."
+            exit 0
+          fi
+
+          git commit -m "chore: نشر بيانات نسخة أندرويد v${VERSION_NAME} [skip ci]"
+
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:main"; then
+              echo "تم الرفع بنجاح."
+              exit 0
+            fi
+            echo "فشل الرفع (محاولة $attempt) — إعادة المزامنة مع origin/main ثم المحاولة مجددًا."
+            sleep $((2 ** attempt))
+            git pull --rebase origin main || true
+          done
+
+          echo "::error::تعذّر رفع بيانات نسخة أندرويد v${VERSION_NAME} بعد 4 محاولات."
+          exit 1

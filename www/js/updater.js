@@ -150,15 +150,12 @@ const Updater = (() => {
     }
   }
 
-  async function maybeAutoCheck() {
-    const s = await Store.getSettings();
-    if (!s.autoCheck) return;
-    const last = s.lastCheck ? new Date(s.lastCheck).getTime() : 0;
-    const intervalMs = (s.checkIntervalHours || 6) * 3600 * 1000;
-    if (Date.now() - last >= intervalMs) {
-      checkForUpdate({ silent: false });
-    }
-  }
-
-  return { checkForUpdate, applyPendingIfAny, initLifecycleHooks, maybeAutoCheck, refreshBadge, cmpVersions };
+  return {
+    checkForUpdate,
+    applyPendingIfAny,
+    initLifecycleHooks,
+    refreshBadge,
+    cmpVersions,
+    getPendingApply: () => pendingApply,
+  };
 })();
