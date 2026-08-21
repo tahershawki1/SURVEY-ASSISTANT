@@ -1,7 +1,7 @@
 {
-  "version": "1.0.5",
-  "url": "https://raw.githubusercontent.com/tahershawki1/SURVEY-ASSISTANT/main/updates/bundle-v1.0.5.zip",
-  "checksum": "5c0d7592f36f7d28b2308071b7b9826d402088554332a22de849301c6178b35a",
-  "notes": "Merge: تعديل عرض جدول القراءات في أداة التحقق من المناسيب",
-  "publishedAt": "2026-08-21T11:41:23Z"
+  "version": "1.0.6",
+  "url": "https://raw.githubusercontent.com/tahershawki1/SURVEY-ASSISTANT/main/updates/bundle-v1.0.6.zip",
+  "checksum": "00dd9452c5c79de11a73317fa04ddd270b817e7e20000158714487e9cbf20353",
+  "notes": "Merge: دعم مفتاح Enter لإدخال القراءة",
+  "publishedAt": "2026-08-21T11:42:42Z"
 }
