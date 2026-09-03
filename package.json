@@ -1,12 +1,14 @@
 {
   "name": "masaha-assistant",
   "version": "1.0.0",
-  "description": "",
+  "description": "أدوات ميدانية لمهندسي المساحة مع تحديث OTA — Capacitor",
   "main": "index.js",
   "scripts": {
-    "build:native": "esbuild src/native.js --bundle --format=iife --outfile=www/js/native-bundle.js",
+    "build:native": "esbuild src/native.js --bundle --format=iife --minify --outfile=www/js/native-bundle.js",
     "sync": "npm run build:native && npx cap sync",
-    "test": "node tests/calc.test.mjs"
+    "test": "node tests/calc.test.mjs",
+    "test:ui": "node tests/ui.test.mjs",
+    "test:all": "npm run test && npm run test:ui"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +27,7 @@
     "@capgo/capacitor-updater": "^8.51.14"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "playwright-core": "^1.62.1"
   }
 }

@@ -218,16 +218,28 @@ jobs:
           BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           NOTES="$(git log -1 --pretty=%s "$COMMIT_SHA")"
 
-          NOTES="$NOTES" BUILT_AT="$BUILT_AT" node -e '
+          if [ "$SIGNED" = "true" ]; then
+            APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
+          else
+            APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+          fi
+          APK_SHA256="$(sha256sum "$APK_PATH" | cut -d" " -f1)"
+          echo "بصمة الـ APK: $APK_SHA256"
+
+          NOTES="$NOTES" BUILT_AT="$BUILT_AT" APK_SHA256="$APK_SHA256" node -e '
             const fs = require("fs");
-            const { VERSION_CODE, VERSION_NAME, COMMIT_SHA, SIGNED, REPO, NOTES, BUILT_AT } = process.env;
+            const { VERSION_CODE, VERSION_NAME, COMMIT_SHA, SIGNED, REPO, NOTES, BUILT_AT, APK_SHA256 } = process.env;
             const signed = SIGNED === "true";
             const manifest = {
               versionCode: parseInt(VERSION_CODE, 10),
               versionName: VERSION_NAME,
               commit: COMMIT_SHA,
               signed,
+              // بناء التصحيح غير الموقّع يُعلَن صراحةً حتى يعرض التطبيق تحذيرًا
+              // بدل تقديمه كتحديث عادي (راجع www/js/app.js).
+              buildType: signed ? "release" : "debug",
               apkUrl: `https://github.com/${REPO}/releases/download/android-debug-latest/${signed ? "app-release.apk" : "app-debug.apk"}`,
+              apkSha256: APK_SHA256,
               notes: NOTES,
               publishedAt: BUILT_AT,
             };

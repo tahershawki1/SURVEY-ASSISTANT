@@ -2,278 +2,86 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://raw.githubusercontent.com; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'" />
 <title>التحقق من المناسيب</title>
+<link rel="icon" href="../icons/icon-192.png" />
+<link rel="apple-touch-icon" href="../icons/icon-512.png" />
+<meta name="theme-color" content="#1d4ed8" />
+<link rel="manifest" href="../manifest.webmanifest" />
 <link rel="stylesheet" href="../css/style.css" />
 </head>
-<body>
+<body data-root="false" data-title="التحقق من المناسيب" data-page="levelcheck">
 
-<header class="app-header">
-  <div class="title-row">
-    <a href="../index.html" class="back-btn">→</a>
-    <h1>التحقق من المناسيب</h1>
-  </div>
-  <a href="notifications.html" class="icon-btn">
-    🔔
-    <span class="badge hidden" data-notif-badge>0</span>
-  </a>
-</header>
-
-<div class="stage-dots" id="stageDots">
-  <div class="dot active" data-dot="1"><span>1</span></div>
-  <div class="dot" data-dot="2"><span>2</span></div>
-  <div class="dot" data-dot="3"><span>3</span></div>
+<header id="appHeader"></header>
+<div class="stage-dots" id="stageDots" role="list" aria-label="مراحل التحقق">
+  <div class="dot active" data-dot="1" role="listitem" aria-label="المرحلة 1">1</div>
+  <div class="sep" aria-hidden="true"></div>
+  <div class="dot" data-dot="2" role="listitem" aria-label="المرحلة 2">2</div>
+  <div class="sep" aria-hidden="true"></div>
+  <div class="dot" data-dot="3" role="listitem" aria-label="المرحلة 3">3</div>
 </div>
-
 <main>
-
-  <!-- المرحلة 1: النقطة الثابتة -->
   <section class="card stage" id="stage1">
     <h2>المرحلة 1 من 3 — النقطة الثابتة (Benchmark)</h2>
     <div class="field">
-      <label>منسوب النقطة الثابتة المعروف (متر)</label>
-      <input type="number" step="any" id="bmRL" placeholder="مثال: 100.000" enterkeyhint="next" />
+      <label for="bmRL">منسوب النقطة الثابتة المعروف (متر)</label>
+      <input type="number" step="any" inputmode="decimal" id="bmRL" placeholder="100.000" enterkeyhint="next" />
     </div>
     <div class="field">
-      <label>قراءة الميزان على النقطة الثابتة (خلفية BS)</label>
-      <input type="number" step="any" id="bmBS" placeholder="مثال: 1.500" enterkeyhint="next" />
+      <label for="bmBS">قراءة الميزان على النقطة الثابتة (خلفية BS)</label>
+      <input type="number" step="any" inputmode="decimal" id="bmBS" placeholder="1.500" enterkeyhint="next" />
     </div>
     <div class="result-box empty" id="hiPreview">أدخل القيمتين لحساب ارتفاع خط النظر (HI)</div>
-    <button class="btn" id="next1" disabled onclick="goTo('stage2')" style="margin-top:12px">التالي ↓</button>
+    <button type="button" class="btn" id="next1" disabled style="margin-top:12px">التالي ↓</button>
   </section>
 
-  <!-- المرحلة 2: المنسوب المطلوب التحقق منه -->
   <section class="card stage locked" id="stage2">
-    <h2>المرحلة 2 من 3 — المنسوب المطلوب</h2>
+    <h2>المرحلة 2 من 3 — المنسوب المطلوب والسماحية</h2>
     <div class="field">
-      <label>المنسوب المراد التحقق منه (متر)</label>
-      <input type="number" step="any" id="targetRL" placeholder="مثال: 100.200" enterkeyhint="next" disabled />
+      <label for="targetRL">المنسوب المراد التحقق منه (متر)</label>
+      <input type="number" step="any" inputmode="decimal" id="targetRL" placeholder="100.200" enterkeyhint="next" disabled />
     </div>
-    <button class="btn" id="next2" disabled onclick="goTo('stage3')" style="margin-top:4px">التالي ↓</button>
+    <div class="field">
+      <label for="tolProfile">نوع العمل (يحدد السماحية)</label>
+      <select id="tolProfile" disabled></select>
+    </div>
+    <div class="field" id="customTolWrap" hidden>
+      <label for="tolMM">السماحية (± مم)</label>
+      <input type="number" step="any" inputmode="decimal" id="tolMM" value="5" disabled />
+    </div>
+    <button type="button" class="btn" id="next2" disabled>التالي ↓</button>
   </section>
 
-  <!-- المرحلة 3: القراءات الميدانية -->
   <section class="card stage locked" id="stage3">
     <h2>المرحلة 3 من 3 — القراءات الميدانية</h2>
-
-    <div class="field" id="readingsWrap" style="display:none">
-      <label>القراءات المسجلة</label>
+    <div id="headline"></div>
+    <div id="readingsWrap" hidden>
       <div class="readings-table">
-        <div class="readings-row head">
-          <span>القراءة</span>
-          <span>النتيجة</span>
-        </div>
+        <div class="readings-row head"><span>القراءة</span><span>النتيجة</span><span></span></div>
         <div id="readingsBody"></div>
       </div>
     </div>
-    <div class="empty-state" id="readingsEmpty">
-      <div class="big">📏</div>
-      لم تُسجَّل أي قراءة بعد
-    </div>
+    <div class="empty-state" id="readingsEmpty"><div class="big" aria-hidden="true">📏</div>لم تُسجَّل أي قراءة بعد</div>
 
     <div class="field" style="margin-top:14px">
-      <label>القراءة الحالية على المكان</label>
-      <input type="number" step="any" id="fieldReading" placeholder="مثال: 1.300" disabled />
+      <label for="fieldReading">القراءة الحالية على المكان</label>
+      <input type="number" step="any" inputmode="decimal" id="fieldReading" placeholder="1.300" enterkeyhint="done" disabled />
     </div>
-    <button class="btn" id="calcBtn" disabled onclick="calcReading()">حساب</button>
-    <button class="btn ghost" onclick="resetAll()" style="margin-top:10px">إعادة الضبط وبدء تحقق جديد</button>
+    <button type="button" class="btn" id="calcBtn" disabled>حساب</button>
+    <div class="export-bar" id="exportBar" hidden></div>
+    <button type="button" class="btn ghost" id="btnReset" style="margin-top:10px">إعادة الضبط وبدء تحقق جديد</button>
   </section>
-
 </main>
-
-<nav class="bottom-nav">
-  <a href="../index.html"><span class="ic">🏠</span>الرئيسية</a>
-  <a href="fieldnotes.html"><span class="ic">📒</span>الدفتر</a>
-  <a href="notifications.html"><span class="ic">🔔</span>الإشعارات</a>
-  <a href="settings.html"><span class="ic">⚙️</span>الإعدادات</a>
-</nav>
+<nav id="appNav"></nav>
 
 <script src="../js/native-bundle.js"></script>
+<script src="../js/ui.js"></script>
 <script src="../js/storage.js"></script>
 <script src="../js/updater.js"></script>
 <script src="../js/native-updater.js"></script>
 <script src="../js/tools/levelcheck.js"></script>
-<script>
-let HI = null;
-let targetRL = null;
-let readings = [];
-
-function setDot(stageNum) {
-  document.querySelectorAll(".dot").forEach((d) => {
-    d.classList.toggle("active", Number(d.dataset.dot) === stageNum);
-    d.classList.toggle("done", Number(d.dataset.dot) < stageNum);
-  });
-}
-
-function goTo(id) {
-  const stageNum = { stage1: 1, stage2: 2, stage3: 3 }[id];
-  setDot(stageNum);
-  document.getElementById(id).scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function unlockStage(id) {
-  const el = document.getElementById(id);
-  el.classList.remove("locked");
-  el.querySelectorAll("input").forEach((n) => (n.disabled = false));
-}
-
-function validateStage1() {
-  const bmRL = parseFloat(document.getElementById("bmRL").value);
-  const bmBS = parseFloat(document.getElementById("bmBS").value);
-  const box = document.getElementById("hiPreview");
-  const next1 = document.getElementById("next1");
-
-  if (isNaN(bmRL) || isNaN(bmBS)) {
-    HI = null;
-    box.className = "result-box empty";
-    box.textContent = "أدخل القيمتين لحساب ارتفاع خط النظر (HI)";
-    next1.disabled = true;
-    return;
-  }
-
-  HI = LevelCheck.computeHI(bmRL, bmBS);
-  box.className = "result-box";
-  box.innerHTML = `<div class="row"><span>ارتفاع خط النظر (HI)</span><b>${HI.toFixed(3)}</b></div>`;
-  next1.disabled = false;
-  unlockStage("stage2");
-}
-
-function validateStage2() {
-  const val = parseFloat(document.getElementById("targetRL").value);
-  const next2 = document.getElementById("next2");
-  if (isNaN(val)) {
-    targetRL = null;
-    next2.disabled = true;
-    return;
-  }
-  targetRL = val;
-  next2.disabled = false;
-  unlockStage("stage3");
-}
-
-function resultLabel(res) {
-  if (res.status === "match") {
-    return { cls: "ok", text: `✅ مطابق` };
-  }
-  if (res.status === "high") {
-    return { cls: "warn", text: `🔺 أعلى بـ ${Math.abs(res.diffMM).toFixed(0)} مم` };
-  }
-  return { cls: "danger", text: `🔻 أقل بـ ${Math.abs(res.diffMM).toFixed(0)} مم` };
-}
-
-function renderReadings() {
-  const body = document.getElementById("readingsBody");
-  const wrap = document.getElementById("readingsWrap");
-  const empty = document.getElementById("readingsEmpty");
-
-  if (readings.length === 0) {
-    wrap.style.display = "none";
-    empty.style.display = "block";
-    return;
-  }
-  wrap.style.display = "block";
-  empty.style.display = "none";
-
-  body.innerHTML = readings
-    .map((r) => {
-      const lbl = resultLabel(r.res);
-      return `
-      <div class="readings-row">
-        <span>${r.reading.toFixed(3)}</span>
-        <span class="${lbl.cls}">${lbl.text}</span>
-      </div>`;
-    })
-    .join("");
-}
-
-function validateStage3() {
-  const val = parseFloat(document.getElementById("fieldReading").value);
-  document.getElementById("calcBtn").disabled = isNaN(val);
-}
-
-function calcReading() {
-  if (HI === null || targetRL === null) {
-    showToast("أكمل المرحلتين السابقتين أولًا");
-    return;
-  }
-  const input = document.getElementById("fieldReading");
-  const reading = parseFloat(input.value);
-  if (isNaN(reading)) {
-    showToast("أدخل قراءة صحيحة");
-    return;
-  }
-  const res = LevelCheck.checkReading(HI, targetRL, reading);
-  readings.push({ reading, res });
-  renderReadings();
-  input.value = "";
-  input.focus();
-  validateStage3();
-}
-
-function resetAll() {
-  HI = null;
-  targetRL = null;
-  readings = [];
-  document.getElementById("bmRL").value = "";
-  document.getElementById("bmBS").value = "";
-  document.getElementById("targetRL").value = "";
-  document.getElementById("fieldReading").value = "";
-  ["stage2", "stage3"].forEach((id) => {
-    const el = document.getElementById(id);
-    el.classList.add("locked");
-    el.querySelectorAll("input").forEach((n) => (n.disabled = true));
-  });
-  document.getElementById("next1").disabled = true;
-  document.getElementById("next2").disabled = true;
-  document.getElementById("calcBtn").disabled = true;
-  document.getElementById("hiPreview").className = "result-box empty";
-  document.getElementById("hiPreview").textContent = "أدخل القيمتين لحساب ارتفاع خط النظر (HI)";
-  renderReadings();
-  goTo("stage1");
-}
-
-function focusField(id) {
-  document.getElementById(id).focus();
-}
-
-document.getElementById("bmRL").addEventListener("input", validateStage1);
-document.getElementById("bmBS").addEventListener("input", validateStage1);
-document.getElementById("targetRL").addEventListener("input", validateStage2);
-document.getElementById("fieldReading").addEventListener("input", validateStage3);
-
-document.getElementById("bmRL").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    focusField("bmBS");
-  }
-});
-document.getElementById("bmBS").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    if (!document.getElementById("next1").disabled) {
-      goTo("stage2");
-      focusField("targetRL");
-    }
-  }
-});
-document.getElementById("targetRL").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    if (!document.getElementById("next2").disabled) {
-      goTo("stage3");
-      focusField("fieldReading");
-    }
-  }
-});
-document.getElementById("fieldReading").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    if (!document.getElementById("calcBtn").disabled) calcReading();
-  }
-});
-
-renderReadings();
-</script>
+<script src="../js/pages/levelcheck.js"></script>
 <script src="../js/app.js"></script>
 </body>
 </html>
