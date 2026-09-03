@@ -9,6 +9,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import { Geolocation } from "@capacitor/geolocation";
 import { Filesystem } from "@capacitor/filesystem";
 import { App as CapApp } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
 
@@ -19,6 +20,7 @@ window.Native = {
   Geolocation,
   Filesystem,
   CapApp,
+  Browser,
   SplashScreen,
   CapacitorUpdater,
 };

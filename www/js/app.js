@@ -56,12 +56,29 @@ function showUpdateModal({ icon = "⬆️", title, message, primaryLabel, onPrim
   });
 }
 
+/* يفتح رابطًا خارجيًا (ملف APK) خارج WebView.
+   window.open(url, "_system") لا يعمل داخل Capacitor بدون إضافة متصفح،
+   وكان يجعل زر "تنزيل وتثبيت" لا يفعل شيئًا. */
+async function openExternal(url) {
+  try {
+    if (window.Native && window.Native.Browser) {
+      await window.Native.Browser.open({ url });
+      return;
+    }
+  } catch (e) {
+    console.warn("Browser.open failed", e);
+  }
+  const win = window.open(url, "_blank");
+  if (!win) window.location.href = url; // Capacitor يفتح الروابط الخارجية في متصفح النظام
+}
+
 /* يفحص تحديث الواجهة (OTA) وتحديث نسخة التطبيق الأصلية (APK) معًا،
    ويعرض موديل تنزيل/تثبيت فعّال لكل واحد منهما إن وُجد. */
 async function promptAvailableUpdates({ manual = false } = {}) {
   const otaResult = await Updater.checkForUpdate({ silent: !manual });
 
-  const pending = Updater.getPendingApply();
+  // قد يكون هناك تحديث منزّل سابقًا لم يُثبَّت بعد (محفوظ في الإعدادات)
+  const pending = Updater.getPendingApply() || (await Updater.loadPendingFromStore());
   if (pending) {
     await showUpdateModal({
       icon: "⬆️",
@@ -69,8 +86,8 @@ async function promptAvailableUpdates({ manual = false } = {}) {
       message: "تم تنزيل التحديث في الخلفية. يمكنك تثبيته الآن (سيُعاد تحميل التطبيق فورًا) أو تركه ليُفعَّل تلقائيًا عند إغلاق التطبيق لاحقًا.",
       primaryLabel: "تثبيت الآن",
       onPrimary: async () => {
-        await Updater.applyPendingIfAny();
-        location.reload();
+        // silentFail:false ليظهر سبب الفشل للمستخدم بدل إغلاق الرسالة بلا تثبيت
+        await Updater.applyPendingIfAny({ silentFail: false });
       },
     });
   }
@@ -80,6 +97,10 @@ async function promptAvailableUpdates({ manual = false } = {}) {
     nativeResult = await NativeUpdater.checkForNativeUpdate();
     if (nativeResult.status === "available") {
       const apkUrl = nativeResult.manifest.apkUrl;
+      if (!apkUrl) {
+        showToast("رابط ملف APK غير متوفر في بيانات التحديث");
+        return { otaResult, nativeResult };
+      }
       await showUpdateModal({
         icon: "📦",
         title: `تتوفر نسخة تطبيق جديدة — ${nativeResult.manifest.versionName}`,
@@ -88,7 +109,7 @@ async function promptAvailableUpdates({ manual = false } = {}) {
           "يحتوي هذا التحديث على تغييرات في مكونات التطبيق الأساسية، لذا يجب تثبيت نسخة APK جديدة يدويًا.",
         primaryLabel: "تنزيل وتثبيت",
         onPrimary: async () => {
-          window.open(apkUrl, "_system");
+          await openExternal(apkUrl);
         },
       });
     }

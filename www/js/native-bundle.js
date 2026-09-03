@@ -1584,13 +1584,47 @@
     }
   });
 
-  // node_modules/@capacitor/splash-screen/dist/esm/web.js
+  // node_modules/@capacitor/browser/dist/esm/web.js
   var web_exports6 = {};
   __export(web_exports6, {
+    Browser: () => Browser,
+    BrowserWeb: () => BrowserWeb
+  });
+  var BrowserWeb, Browser;
+  var init_web6 = __esm({
+    "node_modules/@capacitor/browser/dist/esm/web.js"() {
+      init_dist();
+      BrowserWeb = class extends WebPlugin {
+        constructor() {
+          super();
+          this._lastWindow = null;
+        }
+        async open(options) {
+          this._lastWindow = window.open(options.url, options.windowName || "_blank");
+        }
+        async close() {
+          return new Promise((resolve2, reject) => {
+            if (this._lastWindow != null) {
+              this._lastWindow.close();
+              this._lastWindow = null;
+              resolve2();
+            } else {
+              reject("No active window to close!");
+            }
+          });
+        }
+      };
+      Browser = new BrowserWeb();
+    }
+  });
+
+  // node_modules/@capacitor/splash-screen/dist/esm/web.js
+  var web_exports7 = {};
+  __export(web_exports7, {
     SplashScreenWeb: () => SplashScreenWeb
   });
   var SplashScreenWeb;
-  var init_web6 = __esm({
+  var init_web7 = __esm({
     "node_modules/@capacitor/splash-screen/dist/esm/web.js"() {
       init_dist();
       SplashScreenWeb = class extends WebPlugin {
@@ -1636,12 +1670,12 @@
   });
 
   // node_modules/@capgo/capacitor-updater/dist/esm/web.js
-  var web_exports7 = {};
-  __export(web_exports7, {
+  var web_exports8 = {};
+  __export(web_exports8, {
     CapacitorUpdaterWeb: () => CapacitorUpdaterWeb
   });
   var BUNDLE_BUILTIN, CapacitorUpdaterWeb;
-  var init_web7 = __esm({
+  var init_web8 = __esm({
     "node_modules/@capgo/capacitor-updater/dist/esm/web.js"() {
       init_dist();
       init_definitions2();
@@ -1981,10 +2015,16 @@
     web: () => Promise.resolve().then(() => (init_web5(), web_exports5)).then((m) => new m.AppWeb())
   });
 
+  // node_modules/@capacitor/browser/dist/esm/index.js
+  init_dist();
+  var Browser2 = registerPlugin("Browser", {
+    web: () => Promise.resolve().then(() => (init_web6(), web_exports6)).then((m) => new m.BrowserWeb())
+  });
+
   // node_modules/@capacitor/splash-screen/dist/esm/index.js
   init_dist();
   var SplashScreen = registerPlugin("SplashScreen", {
-    web: () => Promise.resolve().then(() => (init_web6(), web_exports6)).then((m) => new m.SplashScreenWeb())
+    web: () => Promise.resolve().then(() => (init_web7(), web_exports7)).then((m) => new m.SplashScreenWeb())
   });
 
   // node_modules/@capgo/capacitor-updater/dist/esm/index.js
@@ -2255,7 +2295,7 @@
   // node_modules/@capgo/capacitor-updater/dist/esm/index.js
   init_definitions2();
   var CapacitorUpdater = registerPlugin("CapacitorUpdater", {
-    web: () => Promise.resolve().then(() => (init_web7(), web_exports7)).then((m) => new m.CapacitorUpdaterWeb())
+    web: () => Promise.resolve().then(() => (init_web8(), web_exports8)).then((m) => new m.CapacitorUpdaterWeb())
   });
 
   // src/native.js
@@ -2266,6 +2306,7 @@
     Geolocation: Geolocation2,
     Filesystem,
     CapApp: App,
+    Browser: Browser2,
     SplashScreen,
     CapacitorUpdater
   };

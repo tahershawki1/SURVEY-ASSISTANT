@@ -83,6 +83,7 @@ const Updater = (() => {
         if (manifest.checksum) downloadOpts.checksum = manifest.checksum;
         const bundle = await window.Native.CapacitorUpdater.download(downloadOpts);
         pendingApply = { bundle, manifest };
+        await Store.saveSettings({ pendingUpdate: pendingApply });
 
         await Store.addNotification({
           icon: "✅",
@@ -113,16 +114,61 @@ const Updater = (() => {
     return { status: "available-no-native", version: manifest.version };
   }
 
-  async function applyPendingIfAny() {
-    if (!window.Native || !window.Native.CapacitorUpdater) return;
-    if (!pendingApply) return;
+  /* تثبيت التحديث المنزّل. يرمي خطأ عند الفشل حتى لا يُغلق الموديل بصمت
+     دون تثبيت أي شيء (كان هذا سبب اختفاء رسالة التحديث بلا نتيجة). */
+  async function applyPendingIfAny({ silentFail = true } = {}) {
+    const CU = window.Native && window.Native.CapacitorUpdater;
+    if (!CU) {
+      if (silentFail) return false;
+      throw new Error("نظام التحديث غير متاح في هذه النسخة المثبتة من التطبيق");
+    }
+    const pending = pendingApply || (await loadPendingFromStore());
+    if (!pending) {
+      if (silentFail) return false;
+      throw new Error("لا يوجد تحديث منزّل جاهز للتثبيت");
+    }
     try {
-      await window.Native.CapacitorUpdater.set({ id: pendingApply.bundle.id });
-      await Store.saveSettings({ currentVersion: pendingApply.manifest.version });
+      const id = pending.bundle && (pending.bundle.id || pending.bundle.version);
+      if (!id) throw new Error("معرّف الحزمة المنزّلة غير صالح");
+      await CU.set({ id });
+      await Store.saveSettings({
+        currentVersion: pending.manifest.version,
+        pendingUpdate: null,
+      });
       pendingApply = null;
+      // set() يعيد تحميل التطبيق تلقائيًا؛ نضع احتياطًا في حال لم يحدث ذلك.
+      setTimeout(() => {
+        try { CU.reload(); } catch (e) { location.reload(); }
+      }, 1500);
+      return true;
     } catch (e) {
       console.warn("apply update failed", e);
+      await Store.addNotification({
+        icon: "⚠️",
+        title: "تعذّر تثبيت التحديث",
+        message: String(e.message || e),
+      });
+      refreshBadge();
+      if (silentFail) return false;
+      throw e;
     }
+  }
+
+  /* التحديث المنزّل محفوظ أيضًا في الإعدادات حتى لا يضيع عند إعادة تحميل الصفحة. */
+  async function loadPendingFromStore() {
+    try {
+      const s = await Store.getSettings();
+      if (s.pendingUpdate && s.pendingUpdate.bundle && s.pendingUpdate.manifest) {
+        if (cmpVersions(s.pendingUpdate.manifest.version, s.currentVersion) > 0) {
+          pendingApply = s.pendingUpdate;
+          return pendingApply;
+        }
+        await Store.saveSettings({ pendingUpdate: null });
+      }
+    } catch (e) {
+      console.warn("load pending failed", e);
+    }
+    return null;
   }
 
   async function refreshBadge() {
@@ -153,9 +199,11 @@ const Updater = (() => {
   return {
     checkForUpdate,
     applyPendingIfAny,
+    loadPendingFromStore,
     initLifecycleHooks,
     refreshBadge,
     cmpVersions,
     getPendingApply: () => pendingApply,
+    hasNativeUpdater: () => !!(window.Native && window.Native.CapacitorUpdater),
   };
 })();
