@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>الإعدادات | مساعد المساحة</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <a href="../index.html" class="icon-btn" title="رجوع">➡️</a>
+      <div>
+        <h1 class="brand-title">إعدادات التطبيق والميدان</h1>
+        <span class="brand-subtitle">App Configuration & Survey Preferences</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    
+    <!-- Display & Field Ergonomics -->
+    <div class="card-panel">
+      <h3 style="font-size:14px; font-weight:700; margin-bottom:12px;">المظهر وبيئة العمل الميدانية</h3>
+      
+      <div class="form-group" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span style="font-size:14px; font-weight:600; display:block;">نمط أشعة الشمس الساطعة (High Contrast)</span>
+          <span style="font-size:12px; color:var(--text-muted);">يزيد التباين والخطوط للعمل تحت الشمس الحارقة</span>
+        </div>
+        <input type="checkbox" id="fieldModeCheck" style="width:20px; height:20px;">
+      </div>
+
+      <div class="form-group" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span style="font-size:14px; font-weight:600; display:block;">الوضع الليلي (Dark Mode)</span>
+          <span style="font-size:12px; color:var(--text-muted);">يوفر طاقة بطارية الهاتف في العمل الليلي</span>
+        </div>
+        <input type="checkbox" id="darkModeCheck" style="width:20px; height:20px;">
+      </div>
+    </div>
+
+    <!-- Measurement Units & Precision -->
+    <div class="card-panel">
+      <h3 style="font-size:14px; font-weight:700; margin-bottom:12px;">الوحدات والدقة الحسابية</h3>
+
+      <div class="form-group">
+        <label class="form-label">عدد الخانات العشرية للمناسيب والمسافات</label>
+        <select class="form-control">
+          <option value="3" selected>3 خانات (ملم - 0.001 م)</option>
+          <option value="2">خانتان (سم - 0.01 م)</option>
+          <option value="4">4 خانات (0.0001 م)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">وحدة قياس الزوايا</label>
+        <select class="form-control">
+          <option value="dms" selected>درجات ودقائق وثواني (D° M' S")</option>
+          <option value="gon">جراد / جون (Gon / Grad)</option>
+          <option value="dec">درجات عشرية (Decimal Degrees)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">وحدة المساحات الثانوية</label>
+        <select class="form-control">
+          <option value="feddan" selected>فدان / قيراط / سهم</option>
+          <option value="hectare">هكتار (Hectare)</option>
+          <option value="sqm">متر مربع فقط (m²)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- System Info & Updates -->
+    <div class="card-panel">
+      <h3 style="font-size:14px; font-weight:700; margin-bottom:8px;">عن التطبيق والتحديثات الهوائية (OTA)</h3>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
+        الإصدار: <strong class="num-ltr">v2.1.0 (Next-Gen UI)</strong><br>
+        المطور: <strong>طاهر شوقي (tahershawki1)</strong>
+      </p>
+      <button class="btn btn-outline btn-block">🔄 التحقق من التحديثات الهوائية الآن</button>
+    </div>
+
+  </main>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>اختبار وتد الميزان | مساعد المساحة</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <a href="../index.html" class="icon-btn" title="رجوع">➡️</a>
+      <div>
+        <h1 class="brand-title">اختبار ضبط الميزان (Two-Peg Test)</h1>
+        <span class="brand-subtitle">فحص وتحديد خطأ التسامت الدائري للميزان</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    
+    <!-- Instructional Banner -->
+    <div class="card-panel" style="background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.3);">
+      <h3 style="font-size:13px; font-weight:700; color:var(--primary-light); margin-bottom:4px;">طريقة الاختبار الميداني:</h3>
+      <p style="font-size:12px; color:var(--text-muted);">
+        ثبّت وتدين A و B بمسافة معلومة (مثلاً 40 إلى 60 متراً)، ثم خذ قراءتي الجهاز في الموضع الأول (في المنتصف)، ثم انقله للموضع الثاني خلف الوتد A.
+      </p>
+    </div>
+
+    <!-- Setup 1 (In Center) -->
+    <div class="card-panel">
+      <h3 style="font-size:14px; font-weight:700; margin-bottom:12px; color:var(--text-main);">الموضع الأول: الجهاز في المنتصف تماماً بين A و B</h3>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label class="form-label">القراءة على A (a₁)</label>
+          <div class="input-with-unit">
+            <input type="number" step="0.001" id="a1" class="form-control num-ltr" value="1.540" inputmode="decimal">
+            <span class="input-unit-badge">متر</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">القراءة على B (b₁)</label>
+          <div class="input-with-unit">
+            <input type="number" step="0.001" id="b1" class="form-control num-ltr" value="1.320" inputmode="decimal">
+            <span class="input-unit-badge">متر</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Setup 2 (Near Peg A) -->
+    <div class="card-panel">
+      <h3 style="font-size:14px; font-weight:700; margin-bottom:12px; color:var(--text-main);">الموضع الثاني: الجهاز بالقرب من الوتد A</h3>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label class="form-label">القراءة على A (a₂)</label>
+          <div class="input-with-unit">
+            <input type="number" step="0.001" id="a2" class="form-control num-ltr" value="1.450" inputmode="decimal">
+            <span class="input-unit-badge">متر</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">القراءة على B (b₂)</label>
+          <div class="input-with-unit">
+            <input type="number" step="0.001" id="b2" class="form-control num-ltr" value="1.233" inputmode="decimal">
+            <span class="input-unit-badge">متر</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">المسافة الكلية بين الوتدين (D)</label>
+        <div class="input-with-unit">
+          <input type="number" id="distD" class="form-control num-ltr" value="50" inputmode="decimal">
+          <span class="input-unit-badge">متر</span>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="calculateCollimation()">🔍 فحص حالة الجهاز وحساب الخطأ</button>
+    </div>
+
+    <!-- Verdict Card -->
+    <div class="result-card success-border" id="verdictCard">
+      <div class="result-header">
+        <span class="result-title">نتيجة المعايرة والضبط</span>
+        <span class="result-badge badge-pass" id="verdictBadge">الجهاز سليم وصالح للعمل ✓</span>
+      </div>
+      <div class="result-grid">
+        <div class="result-item">
+          <span class="label">فرق المنسوب الحقيقي (Δh)</span>
+          <span class="val num-ltr" id="trueDiff">+0.220 م</span>
+        </div>
+        <div class="result-item">
+          <span class="label">قيمة خطأ التسامت (Error C)</span>
+          <span class="val num-ltr" id="errorC">0.003 م</span>
+        </div>
+        <div class="result-item">
+          <span class="label">الزاوية الرأسية للخطأ</span>
+          <span class="val num-ltr">0° 00' 12"</span>
+        </div>
+        <div class="result-item">
+          <span class="label">القراءة الصحيحة المفترضة على B</span>
+          <span class="val num-ltr" id="correctB">1.230 م</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    function calculateCollimation() {
+      const a1 = parseFloat(document.getElementById('a1').value);
+      const b1 = parseFloat(document.getElementById('b1').value);
+      const a2 = parseFloat(document.getElementById('a2').value);
+      const b2 = parseFloat(document.getElementById('b2').value);
+      const D = parseFloat(document.getElementById('distD').value) || 50;
+
+      const trueDiff = a1 - b1; // Because instrument was equidistant
+      const apparentDiff = a2 - b2;
+      const error = (apparentDiff - trueDiff);
+      const correctB = a2 - trueDiff;
+
+      document.getElementById('trueDiff').textContent = (trueDiff >= 0 ? '+' : '') + trueDiff.toFixed(3) + ' م';
+      document.getElementById('errorC').textContent = Math.abs(error).toFixed(3) + ' م / ' + D + 'م';
+      document.getElementById('correctB').textContent = correctB.toFixed(3) + ' م';
+
+      const badge = document.getElementById('verdictBadge');
+      const card = document.getElementById('verdictCard');
+      if (Math.abs(error) <= 0.004) {
+        badge.textContent = 'الجهاز سليم وصالح للعمل ✓';
+        badge.className = 'result-badge badge-pass';
+        card.className = 'result-card success-border';
+      } else {
+        badge.textContent = 'الجهاز يحتاج صيانة ومعايرة ⚠️';
+        badge.className = 'result-badge badge-fail';
+        card.className = 'result-card error-border';
+      }
+    }
+  </script>
+</body>
+</html>

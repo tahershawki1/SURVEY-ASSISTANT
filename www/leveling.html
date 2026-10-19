@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>دفتر الميزانية الحقلية | مساعد المساحة</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <a href="../index.html" class="icon-btn" title="رجوع">➡️</a>
+      <div>
+        <h1 class="brand-title">الميزانية الهندسية الحقلية</h1>
+        <span class="brand-subtitle">Differential Leveling Sheet</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="clearLevelSheet()" title="مسح الجدول">🗑️</button>
+    </div>
+  </header>
+
+  <main class="main-container">
+    
+    <!-- Benchmark Initial Setup -->
+    <div class="card-panel">
+      <div class="form-group">
+        <label class="form-label">منسوب النقطة المعلومة (Benchmark RL)</label>
+        <div class="input-with-unit">
+          <input type="number" step="0.001" id="bmElevation" class="form-control num-ltr" value="100.000" inputmode="decimal">
+          <span class="input-unit-badge">متر</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Add Reading Form -->
+    <div class="card-panel">
+      <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 10px;">إضافة قراءة جديدة</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group">
+          <label class="form-label">اسم / رقم النقطة</label>
+          <input type="text" id="ptName" class="form-control" placeholder="BM1 أو 1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">نوع القراءة</label>
+          <select id="sightType" class="form-control" style="background: var(--bg-input);">
+            <option value="BS">قراءة خلفية (BS)</option>
+            <option value="IS">قراءة متوسطة (IS)</option>
+            <option value="FS">قراءة أمامية (FS)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">قيمة القراءة على القامة (Staff Reading)</label>
+        <div class="input-with-unit">
+          <input type="number" step="0.001" id="sightVal" class="form-control num-ltr" placeholder="1.450" inputmode="decimal">
+          <span class="input-unit-badge">متر</span>
+        </div>
+      </div>
+      <button class="btn btn-safety btn-block" onclick="addReading()">+ تسجيل القراءة في الجدول</button>
+    </div>
+
+    <!-- Leveling Table -->
+    <div class="table-responsive">
+      <table class="survey-table" id="levelTable">
+        <thead>
+          <tr>
+            <th>النقطة</th>
+            <th>خلفية BS</th>
+            <th>متوسطة IS</th>
+            <th>أمامية FS</th>
+            <th>منسوب الجهاز HI</th>
+            <th>منسوب النقطة RL</th>
+            <th>حذف</th>
+          </tr>
+        </thead>
+        <tbody id="levelTableBody">
+          <!-- Rows will be injected dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Auto Mathematical Balance Check -->
+    <div class="result-card" id="balanceCard">
+      <div class="result-header">
+        <span class="result-title">التحقيق الحسابي للجدول (Math Check)</span>
+        <span class="result-badge badge-pass" id="balanceBadge">متزن حسابياً ✓</span>
+      </div>
+      <div class="result-grid">
+        <div class="result-item">
+          <span class="label">مجموع الخلفيات (Σ BS)</span>
+          <span class="val num-ltr" id="sumBS">0.000 م</span>
+        </div>
+        <div class="result-item">
+          <span class="label">مجموع الأماميات (Σ FS)</span>
+          <span class="val num-ltr" id="sumFS">0.000 م</span>
+        </div>
+        <div class="result-item">
+          <span class="label">فرق القراءات (ΣBS - ΣFS)</span>
+          <span class="val num-ltr" id="diffSights">0.000 م</span>
+        </div>
+        <div class="result-item">
+          <span class="label">فرق المناسيب (Last RL - First RL)</span>
+          <span class="val num-ltr" id="diffRL">0.000 م</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <div class="toast" id="appToast"></div>
+
+  <script>
+    let rows = [
+      { pt: "BM1", bs: 1.625, is: null, fs: null, hi: 101.625, rl: 100.000 },
+      { pt: "1", bs: null, is: 1.410, fs: null, hi: 101.625, rl: 100.215 },
+      { pt: "2 (CP)", bs: 2.150, is: null, fs: 0.985, hi: 102.790, rl: 100.640 },
+      { pt: "BM2", bs: null, is: null, fs: 1.340, hi: null, rl: 101.450 }
+    ];
+
+    function renderTable() {
+      const tbody = document.getElementById('levelTableBody');
+      tbody.innerHTML = '';
+      
+      let sumBS = 0;
+      let sumFS = 0;
+
+      rows.forEach((r, idx) => {
+        if (r.bs) sumBS += r.bs;
+        if (r.fs) sumFS += r.fs;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${r.pt}</strong></td>
+          <td class="num-ltr">${r.bs !== null ? r.bs.toFixed(3) : '-'}</td>
+          <td class="num-ltr">${r.is !== null ? r.is.toFixed(3) : '-'}</td>
+          <td class="num-ltr">${r.fs !== null ? r.fs.toFixed(3) : '-'}</td>
+          <td class="num-ltr" style="color: var(--primary-light);">${r.hi !== null ? r.hi.toFixed(3) : '-'}</td>
+          <td class="num-ltr" style="font-weight:700;">${r.rl !== null ? r.rl.toFixed(3) : '-'}</td>
+          <td><button class="row-del-btn" onclick="deleteRow(${idx})">✖</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('sumBS').textContent = sumBS.toFixed(3) + ' م';
+      document.getElementById('sumFS').textContent = sumFS.toFixed(3) + ' م';
+      
+      const diffSights = sumBS - sumFS;
+      document.getElementById('diffSights').textContent = diffSights.toFixed(3) + ' م';
+
+      if (rows.length >= 2) {
+        const firstRL = rows[0].rl;
+        const lastRL = rows[rows.length - 1].rl;
+        const diffRL = lastRL - firstRL;
+        document.getElementById('diffRL').textContent = diffRL.toFixed(3) + ' م';
+
+        const match = Math.abs(diffSights - diffRL) < 0.002;
+        const badge = document.getElementById('balanceBadge');
+        if (match) {
+          badge.textContent = 'متزن حسابياً ✓';
+          badge.className = 'result-badge badge-pass';
+        } else {
+          badge.textContent = 'يوجد خطأ حسابي ⚠️';
+          badge.className = 'result-badge badge-fail';
+        }
+      }
+    }
+
+    function addReading() {
+      const pt = document.getElementById('ptName').value || `P${rows.length + 1}`;
+      const type = document.getElementById('sightType').value;
+      const val = parseFloat(document.getElementById('sightVal').value);
+
+      if (isNaN(val)) {
+        alert('يرجى إدخال قيمة صحيحة للقراءة');
+        return;
+      }
+
+      // Quick logic for calculation
+      let lastHI = rows.length > 0 ? rows[rows.length - 1].hi : 100.0 + val;
+      let newRL = null;
+      let newHI = lastHI;
+
+      let rObj = { pt, bs: null, is: null, fs: null, hi: null, rl: null };
+
+      if (type === 'BS') {
+        rObj.bs = val;
+        let baseRL = rows.length > 0 ? (rows[rows.length - 1].rl || 100.0) : 100.0;
+        rObj.hi = baseRL + val;
+        rObj.rl = baseRL;
+      } else if (type === 'IS') {
+        rObj.is = val;
+        rObj.rl = lastHI - val;
+        rObj.hi = lastHI;
+      } else if (type === 'FS') {
+        rObj.fs = val;
+        rObj.rl = lastHI - val;
+        rObj.hi = null;
+      }
+
+      rows.push(rObj);
+      renderTable();
+      document.getElementById('sightVal').value = '';
+    }
+
+    function deleteRow(idx) {
+      rows.splice(idx, 1);
+      renderTable();
+    }
+
+    function clearLevelSheet() {
+      if (confirm('هل أنت متأكد من مسح جميع بيانات جدول الميزانية؟')) {
+        rows = [];
+        renderTable();
+      }
+    }
+
+    renderTable();
+  </script>
+</body>
+</html>

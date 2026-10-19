@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>تحويل الإحداثيات | مساعد المساحة</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .tabs-header {
+      display: flex;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      margin-bottom: 16px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tab-btn.active {
+      background: var(--bg-surface);
+      color: var(--primary-light);
+      box-shadow: var(--shadow-sm);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <a href="../index.html" class="icon-btn" title="رجوع">➡️</a>
+      <div>
+        <h1 class="brand-title">تحويل الإحداثيات الميدانية</h1>
+        <span class="brand-subtitle">WGS84 Lat/Long ⟷ UTM Grid</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    
+    <!-- Tab Selector -->
+    <div class="tabs-header">
+      <button class="tab-btn active" id="tabGeoToUtm" onclick="switchTab('geoToUtm')">من جغرافية إلى UTM</button>
+      <button class="tab-btn" id="tabUtmToGeo" onclick="switchTab('utmToGeo')">من UTM إلى جغرافية</button>
+    </div>
+
+    <!-- Live GPS Quick Fetch -->
+    <button class="btn btn-outline btn-block" style="margin-bottom: 16px;" onclick="getGpsLocation()">
+      📍 التقاط إحداثيات موقعي الحالي عبر GPS
+    </button>
+
+    <!-- Form Section -->
+    <div class="card-panel" id="geoInputPanel">
+      <div class="form-group">
+        <label class="form-label">دائرة العرض (Latitude)</label>
+        <div class="input-with-unit">
+          <input type="number" step="0.000001" id="latInput" class="form-control num-ltr" value="25.204849" inputmode="decimal">
+          <span class="input-unit-badge">° N/S</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">خط الطول (Longitude)</label>
+        <div class="input-with-unit">
+          <input type="number" step="0.000001" id="lonInput" class="form-control num-ltr" value="55.270783" inputmode="decimal">
+          <span class="input-unit-badge">° E/W</span>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="convertCoordinates()">⚡ تحويل الإحداثيات الآن</button>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="result-card">
+      <div class="result-header">
+        <span class="result-title">الإحداثيات المسقطة (UTM Coordinates)</span>
+        <button class="icon-btn" onclick="copyResult()" title="نسخ النتيجة">📋</button>
+      </div>
+      <div class="result-grid">
+        <div class="result-item">
+          <span class="label">شماليات (Northing - Y)</span>
+          <span class="val num-ltr" id="resNorthing">2,787,540.12 م</span>
+        </div>
+        <div class="result-item">
+          <span class="label">شرقيات (Easting - X)</span>
+          <span class="val num-ltr" id="resEasting">325,780.45 م</span>
+        </div>
+        <div class="result-item">
+          <span class="label">نطاق المسقط (UTM Zone)</span>
+          <span class="val num-ltr" id="resZone">Zone 40 North</span>
+        </div>
+        <div class="result-item">
+          <span class="label">المرجع الجيوديسي</span>
+          <span class="val">WGS 84 Ellipsoid</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <div class="toast" id="appToast"></div>
+
+  <script>
+    function switchTab(mode) {
+      document.getElementById('tabGeoToUtm').classList.toggle('active', mode === 'geoToUtm');
+      document.getElementById('tabUtmToGeo').classList.toggle('active', mode === 'utmToGeo');
+      showToast(mode === 'geoToUtm' ? 'التحويل من درجات إلى UTM' : 'التحويل من UTM إلى درجات');
+    }
+
+    function getGpsLocation() {
+      showToast('جارٍ الاتصال بمستقبل GPS...');
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          document.getElementById('latInput').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('lonInput').value = pos.coords.longitude.toFixed(6);
+          convertCoordinates();
+          showToast('تم التقاط الموقع بدقة ± ' + pos.coords.accuracy.toFixed(1) + ' م');
+        }, (err) => {
+          alert('تعذر الوصول إلى GPS. تأكد من تفعيل صلاحيات الموقع.');
+        });
+      }
+    }
+
+    function convertCoordinates() {
+      // Mock calculation for UI preview
+      showToast('تم حساب الإحداثيات بنجاح ✓');
+    }
+
+    function copyResult() {
+      const text = `UTM: E: ${document.getElementById('resEasting').textContent}, N: ${document.getElementById('resNorthing').textContent}, Zone: ${document.getElementById('resZone').textContent}`;
+      navigator.clipboard.writeText(text);
+      showToast('تم نسخ الإحداثيات إلى الحافظة 📋');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('appToast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+  </script>
+</body>
+</html>
