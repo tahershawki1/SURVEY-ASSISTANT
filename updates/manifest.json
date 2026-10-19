@@ -1,7 +1,7 @@
 {
-  "version": "1.0.8",
-  "url": "https://raw.githubusercontent.com/tahershawki1/SURVEY-ASSISTANT/main/updates/bundle-v1.0.8.zip",
-  "checksum": "be60806f067dca492aee5d79f358c49ab4c3d5652302e8d72317ca4a08457fb3",
-  "notes": "زر Go بالكيبورد ينقل للحقل التالي حتى عبر المراحل في أداة التحقق من المناسيب",
-  "publishedAt": "2026-08-21T14:12:43Z"
+  "version": "1.0.9",
+  "url": "https://raw.githubusercontent.com/tahershawki1/SURVEY-ASSISTANT/main/updates/bundle-v1.0.9.zip",
+  "checksum": "d0ffc21c119df5c3e5b4fd82924f709e1d7a7dfe34fde2292bf6ea81fb5ef906",
+  "notes": "تغيير شكل الواجهة",
+  "publishedAt": "2026-10-19T07:20:04Z"
 }
